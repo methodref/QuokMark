@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "QuokMark"
+  },
+  "extensionDescription": {
+    "message": "Vim 스타일 단축키로 브라우저 북마크를 검색하고 열고 관리하세요."
+  }
+}

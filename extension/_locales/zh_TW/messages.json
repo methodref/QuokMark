@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "QuokMark"
+  },
+  "extensionDescription": {
+    "message": "透過 Vim 風格快捷鍵搜尋、開啟及管理瀏覽器書籤。"
+  }
+}

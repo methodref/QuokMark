@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QuokMark · 书签</title><link rel="stylesheet" href="maple-theme.css"><link rel="stylesheet" href="style.css"></head>
+<body class="extension">
+<main class="app" inert aria-busy="true">
+  <div class="search"><input id="search" aria-label="搜索书签或文件夹" placeholder="搜索书签或文件夹…" autocomplete="off" spellcheck="false"><kbd>/</kbd></div>
+  <span id="count" hidden></span>
+  <div id="list" role="listbox" aria-label="书签分组" tabindex="0"></div>
+  <div id="bookmark-tip" role="tooltip" hidden></div>
+  <footer><span id="mode" class="sr-only">导航</span><span id="message" role="status"></span><p><kbd>/</kbd> 搜索 <button id="hint-button" title="字母标签选择 (f)" aria-label="字母标签选择">f</button> 选择 <kbd>↵</kbd> 打开 <button id="help-button" aria-label="快捷键帮助" title="快捷键帮助 (?)">?</button></p></footer>
+  <div id="item-menu" role="menu" aria-label="条目操作" hidden></div>
+  <dialog id="item-editor" aria-labelledby="editor-title" aria-describedby="editor-subtitle">
+    <form id="editor-form">
+      <h2 id="editor-title"></h2><p id="editor-subtitle"></p>
+      <label id="rename-field">名称<input id="new-name" autocomplete="off"></label>
+      <div id="move-field" hidden><input id="move-search" aria-label="搜索目标目录" placeholder="/ 搜索目录路径" autocomplete="off"><div id="move-destinations" role="listbox" aria-label="目标目录" tabindex="-1"></div><p id="move-empty" hidden>没有匹配的目录</p><p id="move-path"></p></div>
+      <p id="delete-info" hidden></p><p id="editor-error" role="alert"></p>
+      <div class="editor-actions"><button type="button" id="editor-cancel">取消</button><button type="submit" id="editor-save">保存</button></div>
+    </form>
+  </dialog>
+  <dialog id="shortcut-help" aria-labelledby="help-title">
+    <header><h2 id="help-title">快捷键帮助</h2><button id="help-close" aria-label="关闭快捷键帮助">关闭 · Esc</button></header>
+    <label class="language-setting"><span>界面语言</span><select id="language-select"><option value="zh">简体中文</option><option value="zh-TW">繁體中文</option><option value="en">English</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="es">Español</option></select></label>
+    <label class="language-setting"><span>外观主题</span><select id="theme-select"><option value="system">跟随系统</option><option value="light">日间</option><option value="dark">夜间</option></select></label>
+    <div class="help-content" tabindex="0" aria-label="快捷键列表">
+      <h3>导航与访问</h3>
+      <dl>
+        <dt>j / k · ↓ / ↑</dt><dd>向下 / 向上移动</dd>
+        <dt>h / l · ← / →</dt><dd>前后移动；目录折叠 / 展开</dd>
+        <dt>gg / G</dt><dd>首项 / 末项</dd>
+        <dt>d / u</dt><dd>向下 / 向上翻半页</dd>
+        <dt>Enter</dt><dd>打开当前书签</dd>
+        <dt>yy</dt><dd>复制当前书签网址</dd>
+        <dt>Esc</dt><dd>非搜索时关闭主弹窗</dd>
+      </dl>
+      <h3>搜索与选择</h3>
+      <dl>
+        <dt>/</dt><dd>搜索书签或文件夹名称</dd>
+        <dt>Esc</dt><dd>退出输入保留结果；再按清空</dd>
+        <dt>f</dt><dd>显示可见书签的字母标签</dd>
+        <dt>标签字母</dt><dd>完整匹配后打开；无匹配则退出</dd>
+        <dt>Backspace</dt><dd>删除已输入的标签字符</dd>
+      </dl>
+      <h3>目录与管理</h3>
+      <dl>
+        <dt>zc / zo</dt><dd>折叠 / 展开当前目录</dd>
+        <dt>zM / zR</dt><dd>折叠 / 展开所有目录</dd>
+        <dt>m / Shift+F10</dt><dd>打开条目操作菜单</dd>
+        <dt>j / k · ↑ / ↓</dt><dd>在菜单中选择操作</dd>
+        <dt>Enter</dt><dd>执行菜单操作</dd>
+        <dt>Esc</dt><dd>关闭菜单</dd>
+        <dt>?</dt><dd>打开此帮助；Esc 关闭</dd>
+      </dl>
+      <p>多字母命令依次按键；大写字母需按 Shift。选中书签时，折叠操作作用于所属目录。搜索中的折叠只影响结果。</p>
+    </div>
+  </dialog>
+</main>
+<div id="startup-status" role="status" hidden>正在读取书签…</div>
+<script id="startup-data" type="application/json">null</script>
+<script src="bootstrap.js"></script>
+<script src="i18n.js"></script>
+<script src="theme.js"></script>
+<script src="app.js"></script>
+<script src="manage.js"></script>
+</body></html>

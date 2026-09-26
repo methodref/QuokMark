@@ -1,0 +1,152 @@
+/* Edits operate directly on browser bookmarks. */
+const menu=$('item-menu'), editor=$('item-editor'), destinations=$('move-destinations');
+let managementTarget='', editAction='', destination='', busy=false;
+function findItem(id,nodes=roots,parent=null,path=[]){
+  for(const node of nodes){
+    const fullPath=[...path,node.title || t('未命名')];
+    if(node.id===id) return {node,parent,path:fullPath};
+    const found=findItem(id,node.children || [],node,fullPath);if(found)return found;
+  }
+}
+function protectedItem(item){return !item?.parent || Boolean(item.node.folderType || item.node.unmodifiable);}
+function managementOpen(){return !menu.hidden || editor.open;}
+function closeMenu(focus=true){menu.hidden=true;if(focus)list.focus({preventScroll:true});}
+function openItemMenu(id,x,y){
+  const item=findItem(id);if(!item)return;
+  if(mode==='hints')cancelHints();search.blur();mode=query?'results':'nav';pendingG=false;pendingZ=false;pendingY=false;
+  selected=id;syncSelection(false);showBookmarkTip(null);status();managementTarget=id;
+  menu.replaceChildren();
+  const actions=[...(folder(item.node)?[[isCollapsed(id)?t('展开目录'):t('折叠目录'),'open']]:[]),[t('重命名…'),'rename'],[t('移动到…'),'move'],[folder(item.node)?t('删除文件夹…'):t('删除…'),'delete']];
+  for(const [label,action] of actions){
+    const button=document.createElement('button');button.type='button';button.textContent=label;button.setAttribute('role','menuitem');
+    button.disabled=action!=='open' && protectedItem(item);
+    if(action==='delete')button.className='danger menu-delete';
+    button.onclick=()=>{closeMenu(false);if(action==='open'){list.focus();toggle(item.node);}else openEditor(action);};
+    menu.append(button);
+  }
+  menu.hidden=false;
+  const app=document.querySelector('.app').getBoundingClientRect();
+  menu.style.left=Math.max(4,Math.min(x-app.left,app.width-menu.offsetWidth-4))+'px';
+  menu.style.top=Math.max(4,Math.min(y-app.top,app.height-menu.offsetHeight-4))+'px';
+  menu.querySelector('button:not(:disabled)')?.focus();
+}
+// Collect paths once instead of searching the complete tree for each folder.
+function folderEntries(nodes,path=[],entries=[]){
+  for(const node of nodes){
+    if(!folder(node))continue;
+    const fullPath=[...path,node.title || t('未命名')];
+    entries.push({node,path:fullPath});
+    folderEntries(node.children || [],fullPath,entries);
+  }
+  return entries;
+}
+function renderDestinations(){
+  destinations.replaceChildren();const item=findItem(managementTarget);
+  const blocked=new Set(walk([item.node],0,true).map(x=>x.node.id));
+  const term=$('move-search').value.toLocaleLowerCase();
+  const matches=folderEntries(roots).filter(entry=>entry.path.join(' / ').toLocaleLowerCase().includes(term));
+  if(!matches.some(x=>x.node.id===destination))destination=matches[0]?.node.id || '';
+  $('move-empty').hidden=matches.length>0;
+  for(const entry of matches){
+    const {node}=entry, disabled=blocked.has(node.id)||!!node.unmodifiable;
+    const row=document.createElement('button');row.type='button';row.className='destination';row.dataset.id=node.id;
+    row.setAttribute('role','option');row.setAttribute('aria-selected',String(destination===node.id));row.setAttribute('aria-disabled',String(disabled));row.tabIndex=destination===node.id?0:-1;
+    const label=document.createElement('span');label.textContent=entry.path.join(' / ');row.append(label);
+    if(item.parent?.id===node.id || disabled){const note=document.createElement('small');note.textContent=disabled?t('不可选择'):t('当前位置');row.append(note);}
+    row.onclick=()=>{destination=node.id;renderDestinations();destinations.querySelector(`[data-id="${node.id}"]`)?.focus();};destinations.append(row);
+  }
+  const target=findItem(destination);
+  $('move-path').textContent=target?t('目标：')+target.path.join(' / '):t('请选择目标目录');
+  $('editor-save').disabled=!target || blocked.has(destination) || !!target.node.unmodifiable || destination===item.parent?.id;
+}
+function openEditor(action){
+  const item=findItem(managementTarget);if(!item || protectedItem(item))return;
+  editAction=action;destination=item.parent?.id || '';$('move-search').value='';
+  $('editor-title').textContent={rename:t('重命名'),move:t('移动到文件夹'),delete:t('确认删除')}[action];
+  $('editor-subtitle').textContent=item.node.title || t('未命名');
+  $('rename-field').hidden=action!=='rename';$('move-field').hidden=action!=='move';$('delete-info').hidden=action!=='delete';
+  $('editor-error').textContent='';$('editor-save').disabled=false;
+  $('editor-save').textContent={rename:t('保存'),move:t('移动到这里'),delete:t('删除')}[action];$('editor-save').className=action==='delete'?'danger':'primary';
+  if(action==='rename')$('new-name').value=item.node.title;
+  if(action==='move')renderDestinations();
+  if(action==='delete'){
+    const children=walk(item.node.children || [],0,true);
+    $('delete-info').textContent=folder(item.node)?t('将删除此文件夹及其中的 {bookmarks} 个书签、{folders} 个子目录。此操作不可撤销。',{bookmarks:children.filter(x=>!folder(x.node)).length,folders:children.filter(x=>folder(x.node)).length}):t('将删除此书签。此操作不可撤销。');
+  }
+  editor.showModal();
+  if(action==='rename'){$('new-name').focus();$('new-name').select();}
+  else if(action==='move')destinations.querySelector('[tabindex="0"]')?.focus();else $('editor-cancel').focus();
+}
+function closeEditor(){if(busy)return;editor.close();list.focus({preventScroll:true});syncSelection(false);}
+$('move-search').addEventListener('input',()=>{renderDestinations();destinations.scrollTop=0;});
+function focusDestination(){(destinations.querySelector('[tabindex="0"]') || destinations).focus();}
+$('editor-cancel').onclick=closeEditor;
+editor.addEventListener('cancel',event=>{event.preventDefault();closeEditor();});
+$('editor-form').onsubmit=async event=>{
+  event.preventDefault();if(busy)return;
+  const item=findItem(managementTarget);if(!item || protectedItem(item)){$('editor-error').textContent=t('条目已变更，无法操作');return;}
+  const name=$('new-name').value.trim(), target=findItem(destination);
+  if(editAction==='rename' && !name){$('editor-error').textContent=t('请输入名称');return;}
+  if(editAction==='move' && (!target || !folder(target.node) || target.node.unmodifiable || target.node.id===item.parent.id || walk([item.node],0,true).some(x=>x.node.id===destination))){$('editor-error').textContent=t('请选择有效的目标目录');return;}
+  const oldIndex=rows.findIndex(x=>x.node.id===managementTarget);
+  const neighbor=rows.slice(oldIndex+1).find(x=>!walk([item.node],0,true).some(y=>y.node.id===x.node.id)) || rows[oldIndex-1];
+  busy=true;$('editor-save').disabled=true;$('editor-cancel').disabled=true;
+  try{
+    if(editAction==='rename')await chrome.bookmarks.update(item.node.id,{title:name});
+    if(editAction==='move')await chrome.bookmarks.move(item.node.id,{parentId:destination});
+    if(editAction==='delete')await chrome.bookmarks[folder(item.node)?'removeTree':'remove'](item.node.id);
+    roots=(await chrome.bookmarks.getTree())[0].children;
+    if(editAction!=='rename')selected=neighbor?.node.id || '';
+    busy=false;editor.close();render();list.focus({preventScroll:true});syncSelection();
+    message(editAction==='move'?t('已移动到 ')+target.path.join(' / '):editAction==='delete'?t('已删除'):t('已重命名'));
+  }catch(error){$('editor-error').textContent=t('操作失败：')+error.message;}
+  finally{busy=false;$('editor-save').disabled=false;$('editor-cancel').disabled=false;}
+};
+document.addEventListener('pointerdown',event=>{if(!menu.hidden && !menu.contains(event.target))closeMenu(false);});
+document.addEventListener('keydown',event=>{
+  if(editor.open){
+    event.stopImmediatePropagation();
+    if(busy){event.preventDefault();return;}
+    if(event.isComposing || event.keyCode===229)return;
+    if(editAction==='move'){
+      const input=$('move-search');
+      if(event.target===input){
+        if(event.key==='Escape'||event.key==='Enter'){event.preventDefault();focusDestination();}
+        return;
+      }
+      if(event.key==='/' && !event.ctrlKey && !event.metaKey && !event.altKey){event.preventDefault();input.focus();return;}
+      if(event.key==='Escape' && input.value){event.preventDefault();input.value='';renderDestinations();focusDestination();return;}
+    }
+    if(event.key==='Escape'){event.preventDefault();closeEditor();return;}
+    if(editAction==='delete'){
+      const key=({ArrowLeft:'h',ArrowRight:'l'})[event.key] || event.key;
+      if(key==='h'||key==='l'){
+        event.preventDefault();
+        const buttons=[...editor.querySelectorAll('.editor-actions button:not(:disabled)')];
+        const index=buttons.indexOf(document.activeElement);
+        if(index>=0)buttons[Math.max(0,Math.min(buttons.length-1,index+(key==='l'?1:-1)))].focus();
+      }
+      if(['ArrowUp','ArrowDown','j','k'].includes(key))event.preventDefault();
+      if(key==='Enter'){event.preventDefault();if(document.activeElement===$('editor-save'))$('editor-form').requestSubmit();else closeEditor();}
+      return;
+    }
+    if(editAction!=='move' || !destinations.contains(event.target))return;
+    const key=({ArrowDown:'j',ArrowUp:'k',ArrowLeft:'h',ArrowRight:'l'})[event.key] || event.key;
+    if(!['j','k','h','l','Enter'].includes(key))return;
+    event.preventDefault();const items=[...destinations.children], index=items.indexOf(document.activeElement), row=items[index];if(!row)return;
+    if(['j','k','h','l'].includes(key))items[Math.max(0,Math.min(items.length-1,index+(['j','l'].includes(key)?1:-1)))].click();
+    if(key==='Enter'&&!$('editor-save').disabled)$('editor-form').requestSubmit();return;
+  }
+  if(!menu.hidden){
+    event.stopImmediatePropagation();
+    const buttons=[...menu.querySelectorAll('button:not(:disabled)')], index=buttons.indexOf(document.activeElement);
+    if(['j','k','ArrowDown','ArrowUp','Tab'].includes(event.key)){event.preventDefault();const delta=['k','ArrowUp'].includes(event.key)||event.shiftKey?-1:1;buttons[(index+delta+buttons.length)%buttons.length].focus();}
+    if(event.key==='Escape'){event.preventDefault();closeMenu();}
+    return;
+  }
+  const menuKey=event.key==='m' && (mode==='nav'||mode==='results') && !event.ctrlKey && !event.metaKey && !event.altKey && !event.isComposing;
+  if(menuKey || (event.shiftKey&&event.key==='F10')||event.key==='ContextMenu'){
+    const row=list.querySelector('.row.selected');if(!row || document.activeElement===search)return;
+    event.preventDefault();event.stopImmediatePropagation();const rect=row.getBoundingClientRect();openItemMenu(selected,rect.left,rect.bottom);
+  }
+},true);

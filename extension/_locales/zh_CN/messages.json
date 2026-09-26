@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "QuokMark"
+  },
+  "extensionDescription": {
+    "message": "通过 Vim 风格快捷键搜索、打开和管理浏览器原生书签。"
+  }
+}

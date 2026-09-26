@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "QuokMark"
+  },
+  "extensionDescription": {
+    "message": "Vim風のキーボード操作でブラウザーのブックマークを検索・閲覧・整理。"
+  }
+}

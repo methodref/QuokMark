@@ -1,0 +1,5 @@
+QuokMark includes theme CSS adapted from Maple (https://github.com/tw93/Maple).
+Copyright (c) 2023 Tw93. Licensed under the MIT License; see MAPLE-LICENSE.
+The QuokMark logo was supplied by the project publisher. Website favicons are obtained from
+browser favicon storage at runtime and remain the property of their owners.
+QuokMark is an independent product, not affiliated with Microsoft, Vim, or Maple.

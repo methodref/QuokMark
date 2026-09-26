@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "QuokMark"
+  },
+  "extensionDescription": {
+    "message": "Busca, abre y organiza los marcadores del navegador con atajos de estilo Vim."
+  }
+}
