@@ -21,6 +21,8 @@
 3. 点击「加载解压缩的扩展」，选择 **extension** 文件夹。
 4. 将 QuokMark 固定到浏览器工具栏。
 
+Firefox 桌面版使用单独的 Firefox 安装包，当前 `extension/` 清单仅用于 Chrome / Edge。Firefox 版尚未上架扩展市场。
+
 ## 使用
 
 按 **Command+E（macOS）** 或 **Ctrl+E（Windows）** 打开弹窗，也可以点击工具栏图标。若快捷键冲突，可在浏览器扩展的「键盘快捷键」页面修改。

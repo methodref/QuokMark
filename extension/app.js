@@ -27,8 +27,8 @@ document.addEventListener('keydown',event=>{
 },true);
 document.addEventListener('pointerdown',()=>{pendingY=false;if(pendingZ){pendingZ=false;message();}},true);
 list.addEventListener('pointerdown',event=>{if(!event.target.closest('.folderTitle'))finishFolderMotion();});
-const folder = (node) => !node.url;
-const walk = (nodes, depth=0, all=false) => nodes.flatMap(node => [{node,depth}, ...((folder(node) && (all || !isCollapsed(node.id))) ? walk(node.children || [],depth+1,all) : [])]);
+const folder = (node) => !node.url && node.type!=='separator';
+const walk = (nodes, depth=0, all=false) => nodes.filter(node=>node.type!=='separator').flatMap(node => [{node,depth}, ...((folder(node) && (all || !isCollapsed(node.id))) ? walk(node.children || [],depth+1,all) : [])]);
 const message = (text='') => { $('message').textContent=text; };
 function status(){
   const searching=mode==='edit' || Boolean(query);
@@ -75,8 +75,9 @@ function makeItem(node, label=node.title, items=rows){
   }else{
     row.bookmarkUrl=node.url;
     const icon=document.createElement('img');icon.className='favicon';icon.width=18;icon.height=18;icon.alt='';icon.loading='lazy';icon.decoding='async';
-    const url=new URL(chrome.runtime.getURL('/_favicon/'));url.searchParams.set('pageUrl',node.url);url.searchParams.set('size','32');
-    icon.dataset.src=url.href;
+    const faviconBase=chrome.runtime.getURL('/_favicon/');
+    if(faviconBase.startsWith('moz-extension:'))icon.src='icons/default.svg';
+    else{const url=new URL(faviconBase);url.searchParams.set('pageUrl',node.url);url.searchParams.set('size','32');icon.dataset.src=url.href;}
     icon.onload=()=>{icon.classList.add('favicon-loaded');if(tipTarget===row)showBookmarkTip(row);};
     icon.onerror=()=>{icon.onerror=null;icon.src='icons/default.svg';};
     const name=document.createElement('p');name.textContent=bookmarkName;row.append(icon,name);
@@ -113,6 +114,7 @@ function render(){
     const term=query.toLocaleLowerCase();
     function matchingNodes(nodes){
       return nodes.flatMap(node=>{
+        if(node.type==='separator')return [];
         if(node.title.toLocaleLowerCase().includes(term)) return [node];
         if(!folder(node)) return [];
         const children=matchingNodes(node.children || []);
@@ -466,7 +468,7 @@ async function init(){
   app.inert=false;app.removeAttribute('aria-busy');list.focus({preventScroll:true});
   scheduleBackgroundIcons();
   directoryScroll=list.scrollTop;save();
-  if(native){let timer;const refresh=()=>{clearTimeout(timer);timer=setTimeout(async()=>{if(mode==='hints')cancelHints();roots=(await chrome.bookmarks.getTree())[0].children;render();},80);};for(const event of ['onCreated','onRemoved','onChanged','onMoved','onChildrenReordered']) chrome.bookmarks[event].addListener(refresh);}
+  if(native){let timer;const refresh=()=>{clearTimeout(timer);timer=setTimeout(async()=>{if(mode==='hints')cancelHints();roots=(await chrome.bookmarks.getTree())[0].children;render();},80);};for(const event of ['onCreated','onRemoved','onChanged','onMoved','onChildrenReordered']) chrome.bookmarks[event]?.addListener(refresh);}
 }
 let iconObserver=null, iconWarmupVersion=0, lastIconScroll=0;
 function scheduleBackgroundIcons(){

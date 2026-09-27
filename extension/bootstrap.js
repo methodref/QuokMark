@@ -1,2 +1,2 @@
-// The worker provides data only; all executable code stays in the extension package.
+// Chromium may embed startup data; Firefox reads it through the extension APIs.
 const startupData=JSON.parse(document.getElementById('startup-data')?.textContent || 'null');

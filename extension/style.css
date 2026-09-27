@@ -5,10 +5,16 @@
 #hint-button { font-size: 10px; opacity: .65; }
 .search { margin: 2px 14px 12px; }
 #search { height: 38px; font-size: 14px; }
-.childContainer > .bookmark { background: var(--bookmark-bg); box-shadow: none; transition: background .12s ease, transform .18s cubic-bezier(.25, .46, .45, .94); }
+.childContainer > .bookmark { background: transparent; border-color: transparent; box-shadow: none; transition: none; }
+.childContainer > .bookmark::before { content: ''; position: absolute; inset: 0; z-index: 0; border: 1px solid var(--maple-border); border-radius: inherit; background: var(--bookmark-bg); pointer-events: none; transition: background .12s ease, transform .18s cubic-bezier(.25, .46, .45, .94); }
+.childContainer > .bookmark > * { z-index: 1; transition: transform .18s cubic-bezier(.25, .46, .45, .94); }
 .bookmark .hint { position: static; flex-shrink: 0; margin-left: auto; padding: 2px 5px; font-size: 12px; line-height: 1.15; white-space: nowrap; }
-.childContainer > .bookmark:hover { transform: translateY(-2px); box-shadow: none; background: var(--bookmark-hover); }
-.childContainer > .bookmark.selected { transform: translateY(-2px); background: var(--bookmark-selected); box-shadow: inset 0 0 0 1px var(--maple-accent); }
+.childContainer > .bookmark:hover { transform: none; border-color: transparent; box-shadow: none; background: transparent; content-visibility: visible; }
+.childContainer > .bookmark:hover::before { transform: translateY(-2px); background: var(--bookmark-hover); }
+.childContainer > .bookmark:hover > * { transform: translateY(-2px); }
+.childContainer > .bookmark.selected { transform: none; background: transparent; box-shadow: none; content-visibility: visible; }
+.childContainer > .bookmark.selected::before { transform: translateY(-2px); background: var(--bookmark-selected); box-shadow: inset 0 0 0 1px var(--maple-accent); }
+.childContainer > .bookmark.selected > * { transform: translateY(-2px); }
 .folderTitle.selected { background: transparent; color: var(--maple-accent); }
 footer { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 7px 16px; border: 0; }
 footer p { flex-shrink: 0; margin: 0 0 0 auto; white-space: nowrap; font-size: 10px; }
