@@ -94,6 +94,7 @@ footer #hint-button { width: auto; height: auto; padding: 0 2px; font: 10px mono
 
 /* Keep the viewport stable while folder height changes. */
 #list { overflow-anchor: none; }
+.childContainer > .bookmark { content-visibility: auto; contain-intrinsic-size: auto 44px; }
 
 /* Keep the page, dialog fields and selected folders on the same color system. */
 body { background: var(--maple-bg); color: var(--maple-text); }
