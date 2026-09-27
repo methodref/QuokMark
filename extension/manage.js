@@ -16,7 +16,7 @@ function openItemMenu(id,x,y){
   if(mode==='hints')cancelHints();search.blur();mode=query?'results':'nav';pendingG=false;pendingZ=false;pendingY=false;
   selected=id;syncSelection(false);showBookmarkTip(null);status();managementTarget=id;
   menu.replaceChildren();
-  const actions=[...(folder(item.node)?[[isCollapsed(id)?t('展开目录'):t('折叠目录'),'open']]:[]),[t('重命名…'),'rename'],[t('移动到…'),'move'],[folder(item.node)?t('删除文件夹…'):t('删除…'),'delete']];
+  const actions=[...(folder(item.node)?[[isCollapsed(id)?t('展开目录'):t('折叠目录'),'open']]:[]),[t('重命名…'),'rename'],...(!folder(item.node)?[[t('修改链接…'),'url']]:[]),[t('移动到…'),'move'],[folder(item.node)?t('删除文件夹…'):t('删除…'),'delete']];
   for(const [label,action] of actions){
     const button=document.createElement('button');button.type='button';button.textContent=label;button.setAttribute('role','menuitem');
     button.disabled=action!=='open' && protectedItem(item);
@@ -62,12 +62,13 @@ function renderDestinations(){
 function openEditor(action){
   const item=findItem(managementTarget);if(!item || protectedItem(item))return;
   editAction=action;destination=item.parent?.id || '';$('move-search').value='';
-  $('editor-title').textContent={rename:t('重命名'),move:t('移动到文件夹'),delete:t('确认删除')}[action];
+  $('editor-title').textContent={rename:t('重命名'),url:t('修改链接'),move:t('移动到文件夹'),delete:t('确认删除')}[action];
   $('editor-subtitle').textContent=item.node.title || t('未命名');
-  $('rename-field').hidden=action!=='rename';$('move-field').hidden=action!=='move';$('delete-info').hidden=action!=='delete';
+  $('rename-field').hidden=action!=='rename';$('url-field').hidden=action!=='url';$('move-field').hidden=action!=='move';$('delete-info').hidden=action!=='delete';
   $('editor-error').textContent='';$('editor-save').disabled=false;
-  $('editor-save').textContent={rename:t('保存'),move:t('移动到这里'),delete:t('删除')}[action];$('editor-save').className=action==='delete'?'danger':'primary';
+  $('editor-save').textContent={rename:t('保存'),url:t('保存'),move:t('移动到这里'),delete:t('删除')}[action];$('editor-save').className=action==='delete'?'danger':'primary';
   if(action==='rename')$('new-name').value=item.node.title;
+  if(action==='url')$('new-url').value=item.node.url;
   if(action==='move')renderDestinations();
   if(action==='delete'){
     const children=walk(item.node.children || [],0,true);
@@ -75,6 +76,7 @@ function openEditor(action){
   }
   editor.showModal();
   if(action==='rename'){$('new-name').focus();$('new-name').select();}
+  else if(action==='url'){$('new-url').focus();$('new-url').select();}
   else if(action==='move')destinations.querySelector('[tabindex="0"]')?.focus();else $('editor-cancel').focus();
 }
 function closeEditor(){if(busy)return;editor.close();list.focus({preventScroll:true});syncSelection(false);}
@@ -85,20 +87,25 @@ editor.addEventListener('cancel',event=>{event.preventDefault();closeEditor();})
 $('editor-form').onsubmit=async event=>{
   event.preventDefault();if(busy)return;
   const item=findItem(managementTarget);if(!item || protectedItem(item)){$('editor-error').textContent=t('条目已变更，无法操作');return;}
-  const name=$('new-name').value.trim(), target=findItem(destination);
+  const name=$('new-name').value.trim(), url=$('new-url').value.trim(), target=findItem(destination);
   if(editAction==='rename' && !name){$('editor-error').textContent=t('请输入名称');return;}
+  if(editAction==='url'){
+    try{if(folder(item.node))throw Error();new URL(url);}
+    catch{$('editor-error').textContent=t('请输入有效的链接地址');return;}
+  }
   if(editAction==='move' && (!target || !folder(target.node) || target.node.unmodifiable || target.node.id===item.parent.id || walk([item.node],0,true).some(x=>x.node.id===destination))){$('editor-error').textContent=t('请选择有效的目标目录');return;}
   const oldIndex=rows.findIndex(x=>x.node.id===managementTarget);
   const neighbor=rows.slice(oldIndex+1).find(x=>!walk([item.node],0,true).some(y=>y.node.id===x.node.id)) || rows[oldIndex-1];
   busy=true;$('editor-save').disabled=true;$('editor-cancel').disabled=true;
   try{
     if(editAction==='rename')await chrome.bookmarks.update(item.node.id,{title:name});
+    if(editAction==='url')await chrome.bookmarks.update(item.node.id,{url});
     if(editAction==='move')await chrome.bookmarks.move(item.node.id,{parentId:destination});
     if(editAction==='delete')await chrome.bookmarks[folder(item.node)?'removeTree':'remove'](item.node.id);
     roots=(await chrome.bookmarks.getTree())[0].children;
-    if(editAction!=='rename')selected=neighbor?.node.id || '';
+    if(editAction==='move' || editAction==='delete')selected=neighbor?.node.id || '';
     busy=false;editor.close();render();list.focus({preventScroll:true});syncSelection();
-    message(editAction==='move'?t('已移动到 ')+target.path.join(' / '):editAction==='delete'?t('已删除'):t('已重命名'));
+    message(editAction==='move'?t('已移动到 ')+target.path.join(' / '):editAction==='delete'?t('已删除'):editAction==='url'?t('已修改链接地址'):t('已重命名'));
   }catch(error){$('editor-error').textContent=t('操作失败：')+error.message;}
   finally{busy=false;$('editor-save').disabled=false;$('editor-cancel').disabled=false;}
 };
