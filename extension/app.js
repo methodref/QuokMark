@@ -77,7 +77,7 @@ function makeItem(node, label=node.title, items=rows){
     const icon=document.createElement('img');icon.className='favicon';icon.width=18;icon.height=18;icon.alt='';icon.loading='lazy';icon.decoding='async';
     const url=new URL(chrome.runtime.getURL('/_favicon/'));url.searchParams.set('pageUrl',node.url);url.searchParams.set('size','32');
     icon.dataset.src=url.href;
-    icon.onload=()=>{if(tipTarget===row)showBookmarkTip(row);};
+    icon.onload=()=>{icon.classList.add('favicon-loaded');if(tipTarget===row)showBookmarkTip(row);};
     icon.onerror=()=>{icon.onerror=null;icon.src='icons/default.svg';};
     const name=document.createElement('p');name.textContent=bookmarkName;row.append(icon,name);
     row.onmouseenter=()=>{if(tipPrefersPointer)showBookmarkTip(row);};
@@ -321,18 +321,17 @@ function beginHints(){
     const top=rect.top-lift;
     let group=visualRows.at(-1);
     if(!group || Math.abs(group.top-top)>=2){group={top,height:rect.height,items:[]};visualRows.push(group);}
-    group.items.push({row,left:rect.left,top:rect.top});
+    group.items.push({row,left:rect.left});
   }
   // Decide visibility for the whole layout row, unaffected by hover/focus animation.
   const visibleRows=visualRows.filter(group=>Math.min(group.top+group.height,bounds.bottom)-Math.max(group.top,bounds.top)>=group.height/2);
   visibleRows.sort((a,b)=>a.top-b.top);
   visibleRows.forEach((group,rowIndex)=>{
-    group.items.sort((a,b)=>a.left-b.left).forEach(({row,top},column)=>{
+    group.items.sort((a,b)=>a.left-b.left).forEach(({row},column)=>{
       const slot=(rowIndex%6)*3+column;
       const key=(rowIndex<6?'':doublePrefixes[Math.floor(rowIndex/6)-1])+singleKeys[slot];
       hints.set(key,row.dataset.id);
       const badge=document.createElement('span');badge.className='hint';badge.textContent=key;badge.dataset.key=key;
-      badge.style.top=Math.max(-5,bounds.top-top+2)+'px';
       row.append(badge);
     });
   });
@@ -383,7 +382,7 @@ function checkHintViewport(){
   const resized=list.clientWidth!==hintViewport.width || list.clientHeight!==hintViewport.height;
   if(moved || resized){cancelHints();message(t('位置变化，请重新按 f'));}
 }
-list.addEventListener('scroll',()=>{checkHintViewport();showBookmarkTip(list.querySelector('.bookmark.selected'));if(!query && mode!=='edit'){directoryScroll=list.scrollTop;save(true);}});
+list.addEventListener('scroll',()=>{lastIconScroll=performance.now();checkHintViewport();showBookmarkTip(list.querySelector('.bookmark.selected'));if(!query && mode!=='edit'){directoryScroll=list.scrollTop;save(true);}});
 window.addEventListener('resize',()=>{checkHintViewport();showBookmarkTip(list.querySelector('.bookmark.selected'));});
 document.addEventListener('keydown',event=>{
   if(event.isComposing || event.keyCode===229 || event.metaKey || event.ctrlKey || event.altKey) return;
@@ -465,17 +464,42 @@ async function init(){
   showBookmarkTip(list.querySelector('.bookmark.selected'),true);
   startupStatus.hidden=true;
   app.inert=false;app.removeAttribute('aria-busy');list.focus({preventScroll:true});
+  scheduleBackgroundIcons();
   directoryScroll=list.scrollTop;save();
   if(native){let timer;const refresh=()=>{clearTimeout(timer);timer=setTimeout(async()=>{if(mode==='hints')cancelHints();roots=(await chrome.bookmarks.getTree())[0].children;render();},80);};for(const event of ['onCreated','onRemoved','onChanged','onMoved','onChildrenReordered']) chrome.bookmarks[event].addListener(refresh);}
 }
-let iconObserver=null;
+let iconObserver=null, iconWarmupVersion=0, lastIconScroll=0;
+function scheduleBackgroundIcons(){
+  if(typeof requestIdleCallback!=='function')return;
+  const version=++iconWarmupVersion;
+  requestIdleCallback(deadline=>{
+    if(version!==iconWarmupVersion)return;
+    const icons=[...list.querySelectorAll('.favicon[data-src]')];
+    let index=0;
+    function step(deadline){
+      if(version!==iconWarmupVersion)return;
+      if(performance.now()-lastIconScroll<180){setTimeout(()=>requestIdleCallback(step,{timeout:600}),180);return;}
+      let loaded=0;
+      while(index<icons.length && loaded<8 && (loaded===0 || deadline.timeRemaining()>2)){
+        const icon=icons[index++];
+        if(!icon.isConnected || !icon.dataset.src)continue;
+        iconObserver?.unobserve(icon);
+        icon.loading='eager';icon.src=icon.dataset.src;delete icon.dataset.src;
+        loaded++;
+      }
+      if(index<icons.length)setTimeout(()=>requestIdleCallback(step,{timeout:600}),80);
+    }
+    step(deadline);
+  },{timeout:600});
+}
 function loadNearbyIcons(){
   iconObserver?.disconnect();
   const halfPage=Math.ceil(list.clientHeight/2);
   const observer=new IntersectionObserver(entries=>{
     for(const {target,isIntersecting} of entries){
-      if(!isIntersecting)continue;
+      if(!isIntersecting || !target.dataset.src)continue;
       observer.unobserve(target);
+      target.loading='eager';
       target.src=target.dataset.src;delete target.dataset.src;
     }
   },{root:list,rootMargin:`0px 0px ${halfPage}px 0px`});
@@ -486,6 +510,7 @@ function loadNearbyIcons(){
     if(!nearby.has(icon)){iconObserver.observe(icon);continue;}
     icon.loading='eager';icon.src=icon.dataset.src;delete icon.dataset.src;
   }
+  if(typeof app!=='undefined' && !app.inert)scheduleBackgroundIcons();
 }
 init().catch(()=>{
   app.removeAttribute('aria-busy');
