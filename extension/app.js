@@ -3,7 +3,6 @@ const native = true;
 const $ = (id) => document.getElementById(id);
 const app=document.querySelector('.app'), list = $('list'), search = $('search');
 const startupStatus=$('startup-status');
-const startupTimer=setTimeout(()=>{startupStatus.hidden=false;},180);
 const domReady=document.readyState==='loading'?new Promise(resolve=>document.addEventListener('DOMContentLoaded',resolve,{once:true})):Promise.resolve();
 let roots=[], rows=[], collapsed={}, selected='', mode='nav', query='', hints=new Map(), prefix='', pendingG=false, directoryScroll=0;
 let hintViewport=null;
@@ -41,7 +40,7 @@ function save(deferred=false){
   clearTimeout(saveTimer);
   if(deferred){saveTimer=setTimeout(()=>save(),120);return;}
   saveTimer=0;
-  const state={collapsed:{...collapsed},scroll:directoryScroll};
+  const state={collapsed:{...collapsed},scroll:directoryScroll,selected};
   const serialized=JSON.stringify(state);
   if(serialized===lastSavedState)return;
   lastSavedState=serialized;
@@ -51,7 +50,7 @@ function save(deferred=false){
   });
 }
 let saveTimer=0,lastSavedState='';
-window.addEventListener('pagehide',()=>{if(saveTimer)save();});
+window.addEventListener('pagehide',()=>{if(!app.inert)save();});
 function makeItem(node, label=node.title, items=rows){
   items.push({node,depth:0});
   const bookmarkName=node.title || t('未命名');
@@ -77,7 +76,7 @@ function makeItem(node, label=node.title, items=rows){
     row.bookmarkUrl=node.url;
     const icon=document.createElement('img');icon.className='favicon';icon.width=18;icon.height=18;icon.alt='';icon.loading='lazy';icon.decoding='async';
     const url=new URL(chrome.runtime.getURL('/_favicon/'));url.searchParams.set('pageUrl',node.url);url.searchParams.set('size','32');
-    if(app.inert)icon.dataset.src=url.href;else icon.src=url.href;
+    icon.dataset.src=url.href;
     icon.onload=()=>{if(tipTarget===row)showBookmarkTip(row);};
     icon.onerror=()=>{icon.onerror=null;icon.src='icons/default.svg';};
     const name=document.createElement('p');name.textContent=bookmarkName;row.append(icon,name);
@@ -137,6 +136,7 @@ function render(){
   searchRenderKey=nextSearchKey;
   list.scrollTop=scroll;
   syncSelection(false); status();
+  if(!app.inert)loadNearbyIcons();
 }
 let tipFrame=0, tipTarget=null, tipPrefersPointer=true;
 function showBookmarkTip(row,immediate=false){
@@ -173,6 +173,7 @@ function syncSelection(scroll=true, immediate=false){
   if(next && scroll)next.scrollIntoView({block:'nearest',behavior:immediate || reducedMotion.matches?'instant':'smooth'});
   if(selected) list.setAttribute('aria-activedescendant',`item-${selected}`); else list.removeAttribute('aria-activedescendant');
   showBookmarkTip(list.querySelector('.bookmark.selected'));
+  if(!app.inert)save(true);
 }
 function move(delta, immediate=false){verticalLeft=null;const index=rows.findIndex(x=>x.node.id===selected);selected=rows[Math.max(0,Math.min(rows.length-1,index+delta))]?.node.id || '';syncSelection(true,immediate);}
 function moveVertical(direction, immediate=false){
@@ -277,6 +278,7 @@ function toggle(node){
     motion.onfinish=()=>finishFolderMotion();
   }else if(closing){content.replaceChildren();content.inert=false;content.removeAttribute('aria-hidden');}
   list.scrollTop=scroll;syncSelection();status();
+  if(!app.inert)loadNearbyIcons();
   if(!query){directoryScroll=list.scrollTop;save();}
 }
 function foldCommand(key){
@@ -365,6 +367,7 @@ document.addEventListener('keydown',event=>{
 },true);
 async function openBookmark(node){
   try{
+    selected=node.id;save();
     await chrome.tabs.create({url:node.url,active:true});window.close();
   }catch{message(t('无法打开此书签'));}
 }
@@ -442,35 +445,49 @@ async function init(){
       if(found)return found;
     }
   }
-  const first=firstBookmark(roots);
-  if(first){selected=first.bookmark.id;for(const id of first.parents)collapsed[id]=false;}
+  function findSelected(nodes,id,parents=[]){
+    for(const node of nodes){
+      if(node.id===id)return {node,parents};
+      const found=findSelected(node.children || [],id,[...parents,node.id]);
+      if(found)return found;
+    }
+  }
+  const previous=state?.selected && findSelected(roots,state.selected);
+  if(previous){selected=previous.node.id;for(const id of previous.parents)collapsed[id]=false;}
+  else if(!state?.selected){
+    const first=firstBookmark(roots);
+    if(first){selected=first.bookmark.id;for(const id of first.parents)collapsed[id]=false;}
+  }
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
   directoryScroll=0;render();list.scrollTop=0;
   syncSelection(true,true);
-  await prepareStartupIcons();
+  loadNearbyIcons();
   showBookmarkTip(list.querySelector('.bookmark.selected'),true);
-  clearTimeout(startupTimer);startupStatus.hidden=true;
+  startupStatus.hidden=true;
   app.inert=false;app.removeAttribute('aria-busy');list.focus({preventScroll:true});
   directoryScroll=list.scrollTop;save();
   if(native){let timer;const refresh=()=>{clearTimeout(timer);timer=setTimeout(async()=>{if(mode==='hints')cancelHints();roots=(await chrome.bookmarks.getTree())[0].children;render();},80);};for(const event of ['onCreated','onRemoved','onChanged','onMoved','onChildrenReordered']) chrome.bookmarks[event].addListener(refresh);}
 }
-function prepareStartupIcons(){
-  const bounds=list.getBoundingClientRect();
-  const visible=new Set(viewportRows('.bookmark',bounds.top,bounds.bottom).map(({element})=>element.querySelector('.favicon')));
-  const ready=[];
-  for(const icon of list.querySelectorAll('.favicon[data-src]')){
-    if(visible.has(icon)){
-      icon.loading='eager';icon.decoding='sync';
-      ready.push(new Promise(resolve=>{
-        const loaded=icon.onload;
-        icon.onload=()=>{loaded();resolve();};
-        icon.onerror=()=>{icon.onerror=resolve;icon.src='icons/default.svg';};
-      }));
+let iconObserver=null;
+function loadNearbyIcons(){
+  iconObserver?.disconnect();
+  const halfPage=Math.ceil(list.clientHeight/2);
+  const observer=new IntersectionObserver(entries=>{
+    for(const {target,isIntersecting} of entries){
+      if(!isIntersecting)continue;
+      observer.unobserve(target);
+      target.src=target.dataset.src;delete target.dataset.src;
     }
-    icon.src=icon.dataset.src;delete icon.dataset.src;
+  },{root:list,rootMargin:`0px 0px ${halfPage}px 0px`});
+  iconObserver=observer;
+  const bounds=list.getBoundingClientRect();
+  const nearby=new Set(viewportRows('.bookmark',bounds.top,bounds.bottom+halfPage).map(({element})=>element.querySelector('.favicon')));
+  for(const icon of list.querySelectorAll('.favicon[data-src]')){
+    if(!nearby.has(icon)){iconObserver.observe(icon);continue;}
+    icon.loading='eager';icon.src=icon.dataset.src;delete icon.dataset.src;
   }
-  return Promise.all(ready);
 }
 init().catch(()=>{
-  clearTimeout(startupTimer);app.removeAttribute('aria-busy');
+  app.removeAttribute('aria-busy');
   startupStatus.textContent=t('读取失败，请重新打开弹窗');startupStatus.setAttribute('role','alert');startupStatus.hidden=false;
 });
