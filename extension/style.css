@@ -2,10 +2,11 @@
 *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center}.app{position:relative;width:408px;height:520px;background:var(--maple-bg);display:flex;flex-direction:column;overflow:hidden}#hint-button{width:26px;height:26px;border:0;background:transparent;border-radius:6px;color:var(--maple-text-secondary);cursor:pointer;font:14px monospace}#hint-button:hover{background:var(--maple-accent-soft)}.search{display:flex;align-items:center;margin:4px 14px 22px;width:380px}#search{width:100%;padding:11px 16px;height:42px;font:500 15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--maple-text);background:transparent;border:none;outline:none;text-align:center;caret-color:var(--maple-accent)}#search::placeholder{color:var(--maple-text-muted);font-weight:400}.search>kbd{display:none}#list{flex:1;min-height:0;overflow:auto;padding:0 4px 8px 14px;outline:none;scrollbar-width:none}#list::-webkit-scrollbar{display:none}#list>.childContainer>.folder:first-child>.folderTitle{margin-top:4px}.row{position:relative;outline:0}.row.selected{background:var(--maple-card-active);box-shadow:var(--maple-shadow-md)}.folderTitle.selected{background:var(--maple-accent-soft);color:var(--maple-accent);box-shadow:none}.folderTitle{width:380px}.childContainer>.bookmark{flex-shrink:0;cursor:pointer}.bookmark p{min-width:0;text-align:left}.hint{position:absolute;right:3px;top:-5px;z-index:2;background:#ffe49a;border:1px solid #ffe49a;color:#28220e;border-radius:3px;font:700 11px ui-monospace,monospace;padding:1px 4px;box-shadow:0 1px 2px #0001;text-transform:uppercase}.hint mark{background:none;color:#66551d}.muted{opacity:.35}.empty{padding:45px 12px;text-align:center;color:var(--maple-text-secondary);font-size:13px}footer{flex-shrink:0;padding:8px 14px;background:var(--maple-bg);border-top:1px solid var(--maple-border)}footer>div{display:flex;gap:8px;align-items:center;min-height:13px}#mode{color:var(--maple-accent);font-size:9px}#message{color:var(--maple-text-secondary);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}footer p{font-size:9px;color:var(--maple-text-muted);margin:6px 0 0}kbd{font:10px monospace;padding:1px 3px;border:1px solid var(--maple-border);border-radius:3px}body.extension{min-height:0;width:408px;height:520px}button:focus-visible{outline:1px solid var(--maple-accent)}@media(max-width:407px){.app{width:100vw}.search,.folderTitle{width:calc(100vw - 28px)}.childContainer>.bookmark{width:calc((100vw - 48px)/3);padding:6px}.bookmark p{margin-left:5px}}
 
 /* Quiet Maple layout with subtle lift for hovered and selected bookmarks. */
-#hint-button { font-size: 12px; opacity: .65; }
+#hint-button { font-size: 10px; opacity: .65; }
 .search { margin: 2px 14px 12px; }
 #search { height: 38px; font-size: 14px; }
 .childContainer > .bookmark { background: var(--bookmark-bg); box-shadow: none; transition: background .12s ease, transform .18s cubic-bezier(.25, .46, .45, .94); }
+.bookmark .hint { position: static; flex-shrink: 0; margin-left: auto; padding: 2px 5px; font-size: 12px; line-height: 1.15; white-space: nowrap; }
 .childContainer > .bookmark:hover { transform: translateY(-2px); box-shadow: none; background: var(--bookmark-hover); }
 .childContainer > .bookmark.selected { transform: translateY(-2px); background: var(--bookmark-selected); box-shadow: inset 0 0 0 1px var(--maple-accent); }
 .folderTitle.selected { background: transparent; color: var(--maple-accent); }
@@ -95,6 +96,7 @@ footer #hint-button { width: auto; height: auto; padding: 0 2px; font: 10px mono
 /* Keep the viewport stable while folder height changes. */
 #list { overflow-anchor: none; }
 .childContainer > .bookmark { content-visibility: auto; contain-intrinsic-size: auto 44px; }
+.favicon:not(.favicon-loaded) { background: url('icons/default.svg') center / contain no-repeat; }
 
 /* Keep the page, dialog fields and selected folders on the same color system. */
 body { background: var(--maple-bg); color: var(--maple-text); }
