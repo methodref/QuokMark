@@ -7,7 +7,7 @@
   <span id="count" hidden></span>
   <div id="list" role="listbox" aria-label="书签分组" tabindex="0"></div>
   <div id="bookmark-tip" role="tooltip" hidden></div>
-  <div id="command-line" hidden><span aria-hidden="true">:</span><input id="command-input" aria-label="书签命令" placeholder="r 导入 · w [json|md|html] 导出" autocomplete="off" spellcheck="false"><span id="command-error" role="alert"></span></div>
+  <div id="command-line" hidden><span aria-hidden="true">:</span><input id="command-input" aria-label="书签命令" placeholder="c/o 折叠展开 · m 目录绑定 · r/w 导入导出" autocomplete="off" spellcheck="false"><span id="command-error" role="alert"></span></div>
   <footer><span id="mode" class="sr-only">导航</span><span id="message" role="status"></span><p><kbd>/</kbd> 搜索 <kbd>:</kbd> 命令 <button id="hint-button" title="字母标签选择 (f)" aria-label="字母标签选择">f</button> 选择 <kbd>↵</kbd> 打开 <button id="help-button" aria-label="快捷键帮助" title="快捷键帮助 (?)">?</button></p></footer>
   <div id="item-menu" role="menu" aria-label="条目操作" hidden></div>
   <dialog id="item-editor" aria-labelledby="editor-title" aria-describedby="editor-subtitle">
@@ -49,6 +49,27 @@
       <div class="editor-actions"><button type="button" id="transfer-cancel">取消</button><button type="submit" id="transfer-save" class="primary"></button></div>
     </form>
   </dialog>
+  <dialog id="folder-marks" aria-labelledby="marks-title">
+    <h2 id="marks-title">快捷绑定</h2>
+    <p id="marks-context"></p>
+    <div id="mark-slot-pane">
+      <label class="mark-key-field"><span>选择或添加快捷键</span><input id="mark-key" type="text" maxlength="1" placeholder="数字或字母" aria-label="绑定快捷键" aria-describedby="mark-key-note" autocomplete="off" spellcheck="false"></label>
+      <p id="mark-key-note">默认 3 个键位；选择列表中的“添加快捷键”扩展，也可按 / 自定义键位。</p>
+      <p id="mark-key-error" role="alert"></p>
+      <div id="mark-slots" role="listbox" aria-label="快捷键绑定"></div>
+    </div>
+    <div id="mark-folder-pane" hidden>
+      <div class="order-source"><span class="order-caption">绑定快捷键</span><div><kbd id="mark-slot-number"></kbd><strong id="mark-folder-label">选择目录或书签</strong></div></div>
+      <input id="mark-search" type="search" placeholder="搜索目录或书签…" aria-label="搜索绑定条目" autocomplete="off">
+      <div class="order-heading"><span>绑定条目</span><span id="mark-folder-count"></span></div>
+      <div id="mark-folders" role="tree" aria-labelledby="mark-folder-label"></div>
+    </div>
+    <div id="mark-actions" class="editor-actions"><button type="button" id="mark-remove">解除绑定</button><button type="button" id="marks-close">取消</button><button type="button" id="mark-save" class="primary">选择条目</button></div>
+  </dialog>
+  <dialog id="mark-confirm" aria-labelledby="mark-confirm-title">
+    <h2 id="mark-confirm-title">确认覆盖绑定 <kbd id="mark-confirm-number"></kbd></h2><div class="mark-replacement"><div><span>原条目</span><p id="mark-confirm-old"></p></div><div><span>新条目</span><p id="mark-confirm-new"></p></div></div>
+    <div class="editor-actions"><button type="button" id="mark-confirm-cancel">取消</button><button type="button" id="mark-confirm-save" class="primary">覆盖绑定</button></div>
+  </dialog>
   <dialog id="shortcut-help" aria-labelledby="help-title">
     <header><h2 id="help-title">快捷键帮助</h2><button id="help-close" aria-label="关闭快捷键帮助">关闭 · Esc</button></header>
     <label class="language-setting"><span>界面语言</span><select id="language-select"><option value="zh">简体中文</option><option value="zh-TW">繁體中文</option><option value="en">English</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="es">Español</option></select></label>
@@ -74,8 +95,14 @@
       </dl>
       <h3>目录与管理</h3>
       <dl>
-        <dt>zc / zo</dt><dd>折叠 / 展开当前目录</dd>
-        <dt>zM / zR</dt><dd>折叠 / 展开所有目录</dd>
+        <dt>:c / :o · :t</dt><dd>折叠 / 展开当前目录；切换状态</dd>
+        <dt>:ca / :oa</dt><dd>折叠 / 展开所有目录</dd>
+        <dt>1–9 / a–z</dt><dd>跳转绑定目录或直接打开书签；操作键不可绑定</dd>
+        <dt>d/f/g/h/j/k/l/m/u/y</dt><dd>保留操作键，含对应大写，不能自定义绑定</dd>
+        <dt>:m / :marks · :unmark a</dt><dd>管理快捷绑定；解除数字或字母绑定</dd>
+        <dt>j/k · h/l · Enter</dt><dd>绑定条目树：移动 · 折叠展开 · 确认</dd>
+        <dt>/ · Enter · Esc</dt><dd>绑定搜索：设置快捷键或搜索条目 · 返回列表 · 退出或清除搜索</dd>
+        <dt>h/l · Enter · Esc</dt><dd>绑定操作：选择按钮 · 执行 · 返回或取消</dd>
         <dt>m / Shift+F10</dt><dd>打开条目操作菜单</dd>
         <dt>j / k · ↑ / ↓</dt><dd>在菜单中选择操作</dd>
         <dt>Enter</dt><dd>执行菜单操作</dd>
@@ -103,4 +130,5 @@
 <script src="bookmark-files.js"></script>
 <script src="transfer.js"></script>
 <script src="manage.js"></script>
+<script src="marks.js"></script>
 </body></html>
