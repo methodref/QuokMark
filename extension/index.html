@@ -7,7 +7,8 @@
   <span id="count" hidden></span>
   <div id="list" role="listbox" aria-label="书签分组" tabindex="0"></div>
   <div id="bookmark-tip" role="tooltip" hidden></div>
-  <footer><span id="mode" class="sr-only">导航</span><span id="message" role="status"></span><p><kbd>/</kbd> 搜索 <button id="hint-button" title="字母标签选择 (f)" aria-label="字母标签选择">f</button> 选择 <kbd>↵</kbd> 打开 <button id="help-button" aria-label="快捷键帮助" title="快捷键帮助 (?)">?</button></p></footer>
+  <div id="command-line" hidden><span aria-hidden="true">:</span><input id="command-input" aria-label="书签命令" placeholder="r 导入 · w [json|md|html] 导出" autocomplete="off" spellcheck="false"><span id="command-error" role="alert"></span></div>
+  <footer><span id="mode" class="sr-only">导航</span><span id="message" role="status"></span><p><kbd>/</kbd> 搜索 <kbd>:</kbd> 命令 <button id="hint-button" title="字母标签选择 (f)" aria-label="字母标签选择">f</button> 选择 <kbd>↵</kbd> 打开 <button id="help-button" aria-label="快捷键帮助" title="快捷键帮助 (?)">?</button></p></footer>
   <div id="item-menu" role="menu" aria-label="条目操作" hidden></div>
   <dialog id="item-editor" aria-labelledby="editor-title" aria-describedby="editor-subtitle">
     <form id="editor-form">
@@ -15,8 +16,37 @@
       <label id="rename-field">名称<input id="new-name" autocomplete="off"></label>
       <label id="url-field" hidden>链接地址<input id="new-url" inputmode="url" autocomplete="off" spellcheck="false"></label>
       <div id="move-field" hidden><input id="move-search" aria-label="搜索目标目录" placeholder="/ 搜索目录路径" autocomplete="off"><div id="move-destinations" role="listbox" aria-label="目标目录" tabindex="-1"></div><p id="move-empty" hidden>没有匹配的目录</p><p id="move-path"></p></div>
+      <div id="order-field" hidden>
+        <div class="order-source"><span class="order-caption">正在调整</span><div><span id="order-source-number"></span><strong id="order-source-title"></strong></div></div>
+        <div class="order-heading"><span>选择参照条目</span><span id="order-count"></span></div>
+        <div id="order-targets" role="listbox" aria-label="目标条目" tabindex="-1"></div>
+        <div class="order-placement" role="group" aria-label="放置位置"><button type="button" id="order-before" aria-pressed="true"><kbd>h</kbd> 目标前面</button><button type="button" id="order-after" aria-pressed="false"><kbd>l</kbd> 目标后面</button></div>
+        <div class="order-preview" role="status"><span>调整后位置</span><strong id="order-preview-position"></strong></div>
+      </div>
       <p id="delete-info" hidden></p><p id="editor-error" role="alert"></p>
       <div class="editor-actions"><button type="button" id="editor-cancel">取消</button><button type="submit" id="editor-save">保存</button></div>
+    </form>
+  </dialog>
+  <dialog id="bookmark-transfer" aria-labelledby="transfer-title">
+    <form id="transfer-form">
+      <h2 id="transfer-title"></h2>
+      <div id="export-fields" hidden>
+        <label>导出格式<select id="export-format"><option value="json">JSON</option><option value="markdown">Markdown</option><option value="html">HTML（浏览器书签）</option></select></label>
+        <p>勾选目录，包含完整子树；同名目录会保留必要的父目录结构。</p>
+        <div id="export-tree" aria-label="选择导出目录"></div>
+        <p>j/k 移动 · h/l 折叠/展开 · 空格勾选 · Enter 下一步</p>
+      </div>
+      <div id="import-fields" hidden>
+        <label>书签文件<input id="import-file" type="file" accept=".json,.md,.markdown,.html,.htm"></label>
+        <label>导入到目录<select id="import-destination"></select></label>
+        <div id="import-conflicts" hidden>
+          <label>重复项处理<select id="import-policy"><option value="skip">全部跳过重复项</option><option value="replace">全部覆盖重复项</option></select></label>
+          <ul id="import-preview"></ul>
+          <p id="import-warning" class="danger" hidden></p>
+        </div>
+      </div>
+      <p id="transfer-summary" role="status"></p><p id="transfer-error" role="alert"></p>
+      <div class="editor-actions"><button type="button" id="transfer-cancel">取消</button><button type="submit" id="transfer-save" class="primary"></button></div>
     </form>
   </dialog>
   <dialog id="shortcut-help" aria-labelledby="help-title">
@@ -52,6 +82,14 @@
         <dt>Esc</dt><dd>关闭菜单</dd>
         <dt>?</dt><dd>打开此帮助；Esc 关闭</dd>
       </dl>
+      <h3>导入与导出</h3>
+      <dl>
+        <dt>:r · :import</dt><dd>导入书签，选择文件和目标目录</dd>
+        <dt>:w · :export</dt><dd>选择目录并导出</dd>
+        <dt>:w json/md/html</dt><dd>提前指定导出格式</dd>
+        <dt>Tab · Enter · Esc</dt><dd>补全命令 · 执行 · 退出命令模式</dd>
+        <dt>j/k · h/l · Space</dt><dd>导出目录树：移动 · 折叠/展开 · 勾选</dd>
+      </dl>
       <p>多字母命令依次按键；大写字母需按 Shift。选中书签时，折叠操作作用于所属目录。搜索中的折叠只影响结果。</p>
     </div>
   </dialog>
@@ -62,5 +100,7 @@
 <script src="i18n.js"></script>
 <script src="theme.js"></script>
 <script src="app.js"></script>
+<script src="bookmark-files.js"></script>
+<script src="transfer.js"></script>
 <script src="manage.js"></script>
 </body></html>
