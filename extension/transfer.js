@@ -175,32 +175,51 @@ document.addEventListener('keydown',event=>{
     return;
   }
   if(event.key===':'&&!event.isComposing&&!event.ctrlKey&&!event.metaKey&&!event.altKey&&['nav','results'].includes(mode)&&!managementOpen()){
-    event.preventDefault();event.stopImmediatePropagation();pendingG=false;pendingZ=false;pendingY=false;finishFolderMotion();
+    event.preventDefault();event.stopImmediatePropagation();pendingG=false;pendingY=false;finishFolderMotion();
     mode='command';commandLine.hidden=false;app.classList.add('commanding');commandInput.value='';$('command-error').textContent='';completionCandidates=[];completionIndex=-1;showBookmarkTip(null);status();commandInput.focus();
   }
 },true);
-const bookmarkCommands=['r','read','import','w','write','export'];
+const foldCommands={c:'close',close:'close',o:'open',open:'open',t:'toggle',toggle:'toggle',ca:'closeall',closeall:'closeall',oa:'openall',openall:'openall'};
+const bookmarkCommands=['c','close','o','open','t','toggle','ca','closeall','oa','openall','m','marks','unmark','r','read','import','w','write','export'];
 const exportCommandFormats={json:'json',md:'markdown',markdown:'markdown',html:'html'};
 let completionCandidates=[],completionIndex=-1;
 function closeBookmarkCommand(focus=true){
   commandLine.hidden=true;app.classList.remove('commanding');mode=query?'results':'nav';status();
   if(focus)list.focus({preventScroll:true});showBookmarkTip(list.querySelector('.bookmark.selected'));
 }
+function commandMatches(value){
+  const parts=value.trimStart().replace(/^:/,'').toLowerCase().split(/\s+/);
+  if(parts.length===1)return bookmarkCommands.filter(command=>command.startsWith(parts[0]));
+  if(parts.length!==2)return [];
+  const parameters=['w','write','export'].includes(parts[0])?Object.keys(exportCommandFormats):parts[0]==='unmark'?markKeys():[];
+  return parameters.filter(parameter=>parameter.startsWith(parts[1])).map(parameter=>parts[0]+' '+parameter);
+}
 function completeBookmarkCommand(reverse=false){
   const value=commandInput.value.trimStart().replace(/^:/,'').toLowerCase();
   if(completionIndex<0||commandInput.value!==completionCandidates[completionIndex]){
-    const parts=value.split(/\s+/);
-    completionCandidates=parts.length===1?bookmarkCommands.filter(command=>command.startsWith(parts[0])):parts.length===2&&['w','write','export'].includes(parts[0])?Object.keys(exportCommandFormats).filter(format=>format.startsWith(parts[1])).map(format=>parts[0]+' '+format):[];
-    completionIndex=completionCandidates.indexOf(value);
+    completionCandidates=commandMatches(commandInput.value);completionIndex=completionCandidates.indexOf(value);
   }
   if(!completionCandidates.length)return;
   if(completionIndex<0&&reverse)completionIndex=0;
-  completionIndex=(completionIndex+(reverse?-1:1)+completionCandidates.length)%completionCandidates.length;commandInput.value=completionCandidates[completionIndex];$('command-error').textContent='';
+  completionIndex=(completionIndex+(reverse?-1:1)+completionCandidates.length)%completionCandidates.length;
+  commandInput.value=completionCandidates[completionIndex];$('command-error').textContent='';
 }
 function executeBookmarkCommand(){
   const [command,...args]=commandInput.value.trim().replace(/^:/,'').toLowerCase().split(/\s+/);
+  if(Object.hasOwn(foldCommands,command)){
+    if(args.length){$('command-error').textContent=t('此命令不接受参数');return;}
+    closeBookmarkCommand();foldCommand(foldCommands[command]);return;
+  }
+  if(command==='m'||command==='marks'){
+    if(args.length){$('command-error').textContent=t('此命令不接受参数');return;}
+    closeBookmarkCommand();openFolderMarks();return;
+  }
+  if(command==='unmark'){
+    if(args.length!==1||!isMarkKey(args[0])){$('command-error').textContent=t('请输入一个有效快捷键，例如 :unmark 1 或 :unmark a');return;}
+    closeBookmarkCommand();removeFolderMark(args[0]);return;
+  }
   const importing=['r','read','import'].includes(command),exporting=['w','write','export'].includes(command);
-  if(!importing&&!exporting){$('command-error').textContent=t('未知命令：使用 r 导入或 w 导出');return;}
+  if(!importing&&!exporting){$('command-error').textContent=t('未知命令，请使用 Tab 补全或查看快捷键帮助');return;}
   if((importing&&args.length)||args.length>1||(args.length&&!Object.hasOwn(exportCommandFormats,args[0]))){$('command-error').textContent=t('用法：r 导入；w [json|md|html] 导出');return;}
   closeBookmarkCommand();openTransfer(importing?'import':'export',{format:args[0]?exportCommandFormats[args[0]]:undefined});
 }
