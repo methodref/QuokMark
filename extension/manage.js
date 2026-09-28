@@ -10,20 +10,20 @@ function findItem(id,nodes=roots,parent=null,path=[]){
   }
 }
 function protectedItem(item){return !item?.parent || Boolean(item.node.folderType || item.node.unmodifiable);}
-function managementOpen(){return !menu.hidden || editor.open || transfer.open;}
+function managementOpen(){return !menu.hidden || editor.open || transfer.open || marksDialog.open || markConfirm.open;}
 function closeMenu(focus=true){menu.hidden=true;if(focus)list.focus({preventScroll:true});}
 function openItemMenu(id,x,y){
   const item=findItem(id);if(!item)return;
-  if(mode==='hints')cancelHints();search.blur();mode=query?'results':'nav';pendingG=false;pendingZ=false;pendingY=false;
+  if(mode==='hints')cancelHints();search.blur();mode=query?'results':'nav';pendingG=false;pendingY=false;
   selected=id;syncSelection(false);showBookmarkTip(null);status();managementTarget=id;
   menu.replaceChildren();
-  const actions=[...(folder(item.node)?[[isCollapsed(id)?t('展开目录'):t('折叠目录'),'open']]:[]),[t('重命名…'),'rename'],...(!folder(item.node)?[[t('修改链接…'),'url']]:[]),[t('移动到…'),'move'],[t('调整顺序…'),'order'],[folder(item.node)?t('删除文件夹…'):t('删除…'),'delete']];
+  const actions=[[t('重命名…'),'rename'],...(!folder(item.node)?[[t('修改链接…'),'url']]:[]),[t('移动到…'),'move'],[t('调整顺序…'),'order'],[folder(item.node)?t('删除文件夹…'):t('删除…'),'delete']];
   for(const [label,action] of actions){
     const button=document.createElement('button');button.type='button';button.textContent=label;button.setAttribute('role','menuitem');
-    button.disabled=action!=='open' && protectedItem(item);
+    button.disabled=protectedItem(item);
     if(action==='order' && !(item.parent?.children || []).some(node=>node.id!==id&&node.type!=='separator'&&folder(node)===folder(item.node)))button.disabled=true;
     if(action==='delete')button.className='danger menu-delete';
-    button.onclick=()=>{closeMenu(false);if(action==='open'){list.focus();toggle(item.node);}else openEditor(action);};
+    button.onclick=()=>{closeMenu(false);openEditor(action);};
     menu.append(button);
   }
   menu.hidden=false;
@@ -215,6 +215,7 @@ document.addEventListener('keydown',event=>{
     if(event.key==='Escape'){event.preventDefault();closeMenu();}
     return;
   }
+  if(marksDialog.open||markConfirm.open)return;
   const menuKey=event.key==='m' && (mode==='nav'||mode==='results') && !event.ctrlKey && !event.metaKey && !event.altKey && !event.isComposing;
   if(menuKey || (event.shiftKey&&event.key==='F10')||event.key==='ContextMenu'){
     const row=list.querySelector('.row.selected');if(!row || document.activeElement===search)return;

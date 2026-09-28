@@ -6,7 +6,7 @@ const startupStatus = $('startup-status');
 const domReady = document.readyState === 'loading' ? new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true })) : Promise.resolve();
 let roots = [], rows = [], collapsed = {}, selected = '', mode = 'nav', query = '', hints = new Map(), prefix = '', pendingG = false, directoryScroll = 0;
 let hintViewport = null;
-let searchCollapsed = {}, searchFolderIds = [], pendingZ = false, pendingY = false;
+let searchCollapsed = {}, searchFolderIds = [], pendingY = false;
 const isCollapsed = id => Boolean((query ? searchCollapsed : collapsed)[id]);
 let verticalLeft = null;
 let selectedElement = null;
@@ -25,7 +25,7 @@ document.addEventListener('keydown', event => {
     ((!isCollapsed(node.id) && ['h', 'ArrowLeft'].includes(event.key)) || (isCollapsed(node.id) && ['l', 'ArrowRight'].includes(event.key)));
   if (!toggles) finishFolderMotion();
 }, true);
-document.addEventListener('pointerdown', () => { pendingY = false; if (pendingZ) { pendingZ = false; message(); } }, true);
+document.addEventListener('pointerdown', () => { pendingY = false; }, true);
 list.addEventListener('pointerdown', event => { if (!event.target.closest('.folderTitle')) finishFolderMotion(); });
 const folder = (node) => !node.url && node.type !== 'separator';
 const walk = (nodes, depth = 0, all = false) => nodes.filter(node => node.type !== 'separator').flatMap(node => [{ node, depth }, ...((folder(node) && (all || !isCollapsed(node.id))) ? walk(node.children || [], depth + 1, all) : [])]);
@@ -40,7 +40,7 @@ function save(deferred = false) {
   clearTimeout(saveTimer);
   if (deferred) { saveTimer = setTimeout(() => save(), 120); return; }
   saveTimer = 0;
-  const state = { collapsed: { ...collapsed }, scroll: directoryScroll, selected };
+  const state = { collapsed: { ...collapsed }, scroll: directoryScroll, selected, marks: { ...folderMarks } };
   const serialized = JSON.stringify(state);
   if (serialized === lastSavedState) return;
   lastSavedState = serialized;
@@ -97,7 +97,7 @@ function appendGroups(nodes, parent, path = [], items = rows) {
     group.bookmarkPath = currentPath;
     const hasBookmarks = query
       ? node.title.toLocaleLowerCase().includes(query.toLocaleLowerCase()) || node.children.some(child => child.url)
-      : !roots.some(root => root.id === node.id) || node.children.some(child => child.url);
+      : !roots.some(root => root.id === node.id) || node.children.some(child => child.url) || Object.values(folderMarks).some(mark => mark.id === node.id);
     if (hasBookmarks) group.append(makeItem(node, (currentPath.length > 1 ? currentPath.slice(1) : currentPath).filter(Boolean).join(' / '), items));
     const children = document.createElement('div'); children.className = 'childContainer';
     if (!hasBookmarks || !isCollapsed(node.id)) appendGroups(node.children, children, currentPath, items);
@@ -106,6 +106,7 @@ function appendGroups(nodes, parent, path = [], items = rows) {
 }
 let searchRenderKey = '';
 function render() {
+  refreshFolderMarks();
   finishFolderMotion();
   verticalLeft = null;
   const scroll = list.scrollTop;
@@ -283,33 +284,34 @@ function toggle(node) {
   if (!app.inert) loadNearbyIcons();
   if (!query) { directoryScroll = list.scrollTop; save(); }
 }
-function foldCommand(key) {
+function foldCommand(action) {
   const current = document.getElementById(`item-${selected}`);
   const ancestors = [];
   for (let group = current?.closest('section.folder'); group; group = group.parentElement?.closest('section.folder')) {
     const title = group.querySelector(':scope > .folderTitle');
     if (title) ancestors.push(title.dataset.id);
   }
-  if (key === 'c' || key === 'o') {
+  if (['close', 'open', 'toggle'].includes(action)) {
     const id = ancestors[0], node = rows.find(x => x.node.id === id)?.node;
-    if (node && isCollapsed(id) !== (key === 'c')) { selected = id; toggle(node); }
-    return;
+    if (!node) { message(t('请选择目录或目录内的书签')); return; }
+    if (action === 'toggle' || isCollapsed(id) !== (action === 'close')) toggle(node);
+    list.focus({ preventScroll: true }); return;
   }
   finishFolderMotion();
   const state = query ? searchCollapsed : collapsed;
   const ids = query ? searchFolderIds : walk(roots, 0, true).filter(x => folder(x.node)).map(x => x.node.id);
   const previous = selected;
-  for (const id of ids) state[id] = key === 'M';
+  for (const id of ids) state[id] = action === 'closeall';
   render();
   selected = [previous, ...ancestors].find(id => rows.some(x => x.node.id === id)) || selected;
   syncSelection();
   if (!query) { directoryScroll = list.scrollTop; save(); }
 }
-function enterSearch() { pendingY = false; pendingZ = false; if (mode === 'hints') cancelHints(); if (!query) directoryScroll = list.scrollTop; mode = 'edit'; pendingG = false; search.focus(); showBookmarkTip(null); status(); message(t('输入名称，Esc 返回结果导航')); }
+function enterSearch() { pendingY = false; if (mode === 'hints') cancelHints(); if (!query) directoryScroll = list.scrollTop; mode = 'edit'; pendingG = false; search.focus(); showBookmarkTip(null); status(); message(t('输入名称，Esc 返回结果导航')); }
 function cancelHints() { hintViewport = null; mode = query ? 'results' : 'nav'; hints.clear(); prefix = ''; list.querySelectorAll('.hint').forEach(x => x.remove()); list.querySelectorAll('.muted').forEach(x => x.classList.remove('muted')); status(); showBookmarkTip(list.querySelector('.bookmark.selected')); }
 function beginHints() {
   list.scrollTo({ top: list.scrollTop, behavior: 'instant' });
-  pendingY = false; pendingZ = false;
+  pendingY = false;
   finishFolderMotion();
   search.blur(); list.focus({ preventScroll: true }); mode = 'hints'; pendingG = false; prefix = ''; hints.clear(); showBookmarkTip(null);
   const bounds = list.getBoundingClientRect();
@@ -355,7 +357,7 @@ async function copyBookmark() {
 }
 const shortcutHelp = $('shortcut-help');
 function openHelp() {
-  pendingY = false; pendingZ = false; pendingG = false; finishFolderMotion(); showBookmarkTip(null);
+  pendingY = false; pendingG = false; finishFolderMotion(); showBookmarkTip(null);
   shortcutHelp.showModal(); $('help-close').focus();
 }
 $('help-close').onclick = () => shortcutHelp.close();
@@ -402,15 +404,14 @@ document.addEventListener('keydown', event => {
     else if (key === 'Backspace' || /^[a-z,]$/i.test(key)) { event.preventDefault(); hintInput(key); }
     return;
   }
+  const shortcut = key.toLowerCase();
+  if (isMarkKey(shortcut) && (/^[1-9]$/.test(shortcut) || Object.hasOwn(folderMarks, shortcut)) && ['nav', 'results'].includes(mode)) {
+    event.preventDefault(); pendingG = false; pendingY = false;
+    if (!event.repeat) jumpToFavorite(shortcut); return;
+  }
   if (key !== 'y') pendingY = false;
   if (key === '?' || key === '？') { event.preventDefault(); openHelp(); return; }
-  if (pendingZ) {
-    pendingZ = false; pendingG = false; event.preventDefault(); message();
-    if (['c', 'o', 'M', 'R'].includes(key)) foldCommand(key);
-    return;
-  }
   if (key === 'y') { event.preventDefault(); pendingG = false; if (pendingY) { pendingY = false; copyBookmark(); } else { pendingY = true; message(t('y · 再按 y 复制网址')); } return; }
-  if (key === 'z') { event.preventDefault(); pendingZ = true; pendingG = false; message(t('z · c 折叠 / o 展开 · M 全折叠 / R 全展开')); return; }
   key = ({ ArrowUp: 'k', ArrowDown: 'j', ArrowLeft: 'h', ArrowRight: 'l' })[key] || key;
   if (!['j', 'k', 'h', 'l', 'd', 'u', 'g', 'G', '/', 'f', 'F', 'Enter', 'Escape'].includes(key)) { pendingG = false; return; }
   event.preventDefault(); message();
@@ -433,10 +434,20 @@ document.addEventListener('keydown', event => {
     else if (mode === 'nav') { save(); window.close(); }
   }
 });
+function alignSelectionUpperThird() {
+  if (!selectedElement) return;
+  const bounds = list.getBoundingClientRect(), rect = selectedElement.getBoundingClientRect();
+  const top = Math.max(0, Math.min(list.scrollHeight - list.clientHeight, list.scrollTop + rect.top - bounds.top + rect.height / 2 - list.clientHeight / 3));
+  const edge = bounds.top + top - list.scrollTop;
+  const clipped = viewportRows('.row', edge, edge).filter(({ rect }) => rect.top < edge + 2 && rect.bottom > edge);
+  // Leave room for the card's 2px lift, without hiding the restored selection at the end.
+  const aligned = Math.max(0, Math.min(top, ...clipped.map(({ rect }) => list.scrollTop + rect.top - bounds.top - 2)));
+  list.scrollTo({ top: rect.bottom - bounds.top + list.scrollTop - aligned <= list.clientHeight ? aligned : top, behavior: 'instant' });
+}
 async function init() {
   const [, , stored, tree] = await Promise.all([loadLanguage(), themeReady, startupData?.settings || chrome.storage.local.get(['linkcoveState', 'linkcoveDemo']), startupData?.tree || chrome.bookmarks.getTree(), domReady]);
   const state = stored.linkcoveState || stored.linkcoveDemo;
-  collapsed = state?.collapsed || {}; directoryScroll = state?.scroll || 0;
+  collapsed = state?.collapsed || {}; directoryScroll = state?.scroll || 0; folderMarks = state?.marks || {};
   roots = tree[0].children;
   function firstBookmark(nodes, parents = []) {
     const bookmark = nodes.find(node => node.url);
@@ -462,15 +473,7 @@ async function init() {
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   directoryScroll = 0; render(); list.scrollTop = 0;
   syncSelection(!previous, true);
-  if (previous && selectedElement) {
-    const bounds = list.getBoundingClientRect(), rect = selectedElement.getBoundingClientRect();
-    const top = Math.max(0, Math.min(list.scrollHeight - list.clientHeight, list.scrollTop + rect.top - bounds.top + rect.height / 2 - list.clientHeight / 3));
-    const edge = bounds.top + top - list.scrollTop;
-    const clipped = viewportRows('.row', edge, edge).filter(({ rect }) => rect.top < edge + 2 && rect.bottom > edge);
-    // Leave room for the card's 2px lift, without hiding the restored selection at the end.
-    const aligned = Math.max(0, Math.min(top, ...clipped.map(({ rect }) => list.scrollTop + rect.top - bounds.top - 2)));
-    list.scrollTo({ top: rect.bottom - bounds.top + list.scrollTop - aligned <= list.clientHeight ? aligned : top, behavior: 'instant' });
-  }
+  if (previous && selectedElement) alignSelectionUpperThird();
   loadNearbyIcons();
   showBookmarkTip(list.querySelector('.bookmark.selected'), true);
   startupStatus.hidden = true;

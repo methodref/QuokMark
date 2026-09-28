@@ -12,6 +12,7 @@ This repository contains the directly loadable Chrome / Edge extension source. `
 - **Bookmark management:** rename, edit URLs, move, reorder and delete native browser bookmarks.
 - **Import and export:** JSON, nested Markdown lists and browser bookmark HTML; export multiple folders across parents.
 - **Keyboard controls:** fold folders, scroll half a page, and copy URLs.
+- **Shortcut bindings:** three initial slots, with numbers and custom letters; jump to folders or open bookmarks with one key.
 - **Light and dark themes:** follow the system or choose manually.
 - **Eight languages:** 简体中文, 繁體中文, English, 日本語, 한국어, Français, Deutsch, Español.
 
@@ -35,7 +36,8 @@ Press **Command+E (macOS)** or **Ctrl+E (Windows)**, or click the toolbar icon. 
 | `f` → hint letters | Open the matching bookmark |
 | `Enter` | Open the selected bookmark |
 | `d/u` · `gg/G` | Scroll down / up half a page; jump to first / last item |
-| `zc/zo` · `zM/zR` | Close / open the current folder; close / open all folders |
+| `:c / :o` · `:ca / :oa` | Collapse / expand the current folder; collapse / expand all folders |
+| `1–9` / custom letter | Jump to a bound folder or open a bound bookmark in a new tab |
 | `yy` | Copy the bookmark URL |
 | `m` / right-click | Rename, edit URL, move, reorder or delete |
 | `:` | Enter import or export commands |
@@ -45,6 +47,49 @@ Press **Command+E (macOS)** or **Ctrl+E (Windows)**, or click the toolbar icon. 
 Reopening the popup restores your last selection near the upper third of the list, keeping the first visible item whole where possible.
 
 During search, Esc keeps the results; press it again to clear them. A complete hint label opens the bookmark immediately in a new tab. Edits affect native bookmarks directly—check before confirming deletion.
+
+## Folding commands and shortcut bindings
+
+Press `:` from the list to enter a command. `Enter` runs it and `Esc` cancels. Command mode shows only the input line, without a suggestion list. `Tab` / `Shift+Tab` completes commands and arguments.
+
+| Short command | Full command | Action |
+| --- | --- | --- |
+| `:c` | `:close` | Collapse current folder |
+| `:o` | `:open` | Expand current folder |
+| `:t` | `:toggle` | Toggle current folder |
+| `:ca` | `:closeall` | Collapse all folders |
+| `:oa` | `:openall` | Expand all folders |
+
+A selected bookmark uses its parent folder. While searching, these commands affect only the search results. When collapsing hides the selection, its folder becomes selected. `h/l` and left/right arrows remain available; the old `zc/zo/zM/zR` shortcuts and folding menu entries are removed.
+
+Use `:m` (short for `:marks`) to bind folders or bookmarks to `1–9` or a custom single English letter. Letters are case-insensitive. `:m` takes no arguments. There are no clickable shortcut entries at the bottom.
+
+The list starts with only `1, 2, 3`, while preserving other existing bindings. Click **Add shortcut** at the end of the list, or select it with `j/k` and press `Enter` / `l`. An unused key is suggested and the input receives focus; keep it or enter another available number or letter, then press `Enter` to choose an item. Bindings are not limited to the 9 number keys.
+
+Shortcuts work in list navigation and search results, without intercepting search input, command input, dialogs or hint selection. Folder shortcuts clear the search, expand the necessary parents and select the folder near the upper third of the list. Bookmark shortcuts open the bookmark directly in a new tab. Shortcuts persist locally and follow renamed or moved items; deleted items are marked unavailable. Existing number-to-folder bindings remain valid. Replacement confirmation shows the previous and new items and changes only the shortcut assignment.
+
+Existing action keys `d/f/g/h/j/k/l/m/u/y`, including their uppercase forms, are reserved. Available letters are `a/b/c/e/i/n/o/p/q/r/s/t/v/w/x/z`. Letters inside colon commands do not conflict with single-key shortcuts.
+
+The `:m` / `:marks` dialog shows one step at a time:
+
+1. **Choose a key:** use `j/k` for existing slots, press a number or available letter directly, or press `/` to focus the shortcut input. Enter a single number or letter; reserved action keys show an error and prevent continuing. `Enter` or `l` opens item selection; from the input, `Enter` continues and `Esc` returns to the list. `h` focuses Cancel.
+2. **Choose a folder or bookmark:** navigate the tree with the keys below. Press `Enter` or click **Confirm shortcut** to save directly. Replacing a shortcut opens confirmation immediately, showing the previous and new items with **Replace shortcut** focused by default. Press `Enter` again to finish.
+
+| Keys | Item tree action |
+| --- | --- |
+| `j/k` / up and down arrows | Select previous / next visible folder or bookmark |
+| `h/l` / left and right arrows | Collapse / expand; go to parent / first child when already collapsed / expanded |
+| `d/u` | Move down / up half a page |
+| `gg/G` | Select first / last visible item |
+| `/` | Focus folder and bookmark search |
+| `Enter` | Save directly; open confirmation when replacing |
+| `Esc` | Clear search; return to key selection when search is empty |
+
+Search matches folder and bookmark names throughout the tree, including items inside collapsed folders, without case sensitivity. Results show full paths to distinguish identical names. From the search field, `Enter`, up/down arrows or `Esc` returns to the results; use `j/k` to select and `Enter` to confirm. With no results, confirmation is disabled and `Esc` clears the search.
+
+On action buttons, use `h/l` or left/right arrows to select and `Enter` to execute. `j/k` or `Esc` returns to the current list. `Esc` from key selection closes the dialog. Replacement confirmation uses `h/l` (or `j/k`) to choose Cancel or Replace, `Enter` to execute and `Esc` to cancel. Saving returns to key selection for continued setup.
+
+Mouse controls are available. Use Unbind during key selection or `:unmark 1` / `:unmark a` to remove a number or letter shortcut directly.
 
 ## Reorder items
 
@@ -105,6 +150,6 @@ QuokMark's UI design draws on [Maple](https://github.com/tw93/Maple). Thank you 
 
 ## More
 
-No ads or analytics. Read the [privacy policy](docs/privacy/index.html). Share feedback through Issues or contact methodref@163.com.
+No ads or analytics. Read the [privacy policy](docs/privacy/index.html). Share feedback through Issues or contact methodref@outlook.com.
 
 [MIT License](LICENSE) · [Third-party notices](extension/THIRD-PARTY-NOTICES.txt)

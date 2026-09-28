@@ -425,7 +425,9 @@ footer #hint-button {
 #item-menu button:focus,
 #item-menu button:hover,
 #item-editor button:focus-visible,
-#bookmark-transfer button:focus-visible {
+#bookmark-transfer button:focus-visible,
+#folder-marks button:focus-visible,
+#mark-confirm button:focus-visible {
   background: var(--maple-accent-soft);
   outline: 1px solid var(--maple-accent);
 }
@@ -559,9 +561,15 @@ footer #hint-button {
 }
 
 #item-editor .primary,
-#bookmark-transfer .primary {
+#bookmark-transfer .primary,
+#folder-marks .primary,
+#mark-confirm .primary {
   background: var(--maple-accent);
   color: var(--maple-bg);
+}
+
+#mark-confirm .primary:focus-visible {
+  background: var(--maple-accent);
 }
 
 #move-destinations .destination {
@@ -1120,3 +1128,54 @@ body {
 .order-preview { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 10px 2px 0; }
 #order-preview-position { font-size: 12px; font-weight: 600; color: var(--maple-accent); }
 .ordering .editor-actions { padding-top: 10px; margin-top: 10px; border-top: 1px solid var(--control-border); }
+
+#mark-slots .invalid { color: var(--danger); }
+#folder-marks, #mark-confirm {
+  width: 370px; max-width: calc(100% - 24px); max-height: calc(100% - 24px); padding: 16px;
+  border: 1px solid var(--control-border); border-radius: 12px; background: var(--surface-raised); color: var(--maple-text); box-shadow: 0 12px 40px #0004;
+}
+#folder-marks::backdrop, #mark-confirm::backdrop { background: #0006; }
+#folder-marks { width: 410px; box-sizing: border-box; max-height: calc(100dvh - 32px); }
+#folder-marks[open] { display: flex; flex-direction: column; }
+#folder-marks > :not(#mark-slot-pane):not(#mark-folder-pane) { flex-shrink: 0; }
+#mark-slot-pane, #mark-folder-pane { display: flex; flex-direction: column; min-height: 0; }
+#mark-slot-pane[hidden], #mark-folder-pane[hidden] { display: none; }
+#mark-folder-pane > :not(#mark-folders) { flex-shrink: 0; }
+#mark-slot-pane > :not(#mark-slots) { flex-shrink: 0; }
+.mark-key-field { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; font-size: 12px; }
+#mark-key { width: 104px; padding: 7px 8px; border: 1px solid var(--control-border); border-radius: 6px; background: var(--maple-bg); color: var(--maple-text); font: 12px ui-monospace, monospace; }
+#mark-key:focus { outline: 1px solid var(--maple-accent); outline-offset: -1px; }
+#mark-key-note { margin: 0 0 8px; color: var(--maple-text-muted); font-size: 11px; line-height: 1.5; }
+#mark-key-error { margin: 0 0 8px; color: var(--danger); font-size: 11px; }
+#mark-key-error:empty { display: none; }
+#marks-title, #mark-confirm-title { margin: 0 0 8px; font-size: 17px; }
+#marks-context { margin: 0 0 12px; font-size: 11px; color: var(--maple-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#mark-slots { max-height: min(280px, 45vh); min-height: 0; overflow: auto; padding: 4px; border: 1px solid var(--control-border); border-radius: 8px; scrollbar-width: thin; scroll-padding: 4px; }
+#mark-slots button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; }
+#mark-slots button span:not(.mark-selected) { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#mark-slots kbd { flex: 0 0 24px; font: 11px ui-monospace, monospace; color: var(--maple-text-muted); }
+#folder-marks button, #mark-confirm button { padding: 7px 8px; border: 0; border-radius: 5px; background: transparent; color: inherit; cursor: pointer; font-size: 12px; }
+#mark-slots button[aria-selected="true"], #mark-slots button:hover, #mark-folders button:hover { background: var(--maple-accent-soft); }
+#folder-marks button:disabled { opacity: .4; cursor: default; }
+#mark-actions { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--control-border); }
+#mark-remove { margin-right: auto; color: var(--maple-text-muted); }
+#mark-folder-label { font-size: 13px; font-weight: 600; }
+#mark-slot-number, #mark-confirm-title kbd { color: var(--maple-accent); }
+#mark-search { width: 100%; box-sizing: border-box; margin-top: 10px; padding: 8px 10px; border: 1px solid var(--control-border); border-radius: 6px; background: var(--maple-bg); color: var(--maple-text); font-size: 12px; }
+#mark-search:focus { outline: 1px solid var(--maple-accent); outline-offset: -1px; }
+#mark-folders { max-height: min(190px, 30vh); min-height: 0; overflow: auto; padding: 4px; border: 1px solid var(--control-border); border-radius: 8px; scrollbar-width: thin; scroll-padding: 4px; }
+#folder-marks #mark-slots button, #folder-marks #mark-folders button { padding: 9px 8px; border: 1px solid transparent; }
+#mark-folders button { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; }
+#folder-marks #mark-slots button[aria-selected="true"], #folder-marks #mark-folders button[aria-selected="true"] { background: var(--maple-accent-soft); color: var(--maple-accent); border-color: var(--maple-accent); }
+#mark-slots button[aria-selected="true"] kbd { color: var(--maple-accent); }
+#mark-folders .mark-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mark-selected { flex: 0 0 auto; opacity: 0; color: var(--maple-accent); }
+#folder-marks button[aria-selected="true"] .mark-selected { opacity: 1; }
+.mark-empty { margin: 12px 8px; font-size: 12px; color: var(--maple-text-muted); }
+.mark-disclosure { flex: 0 0 12px; color: var(--maple-text-muted); }
+
+.mark-replacement { display: grid; gap: 8px; margin-top: 14px; }
+.mark-replacement > div { padding: 10px 12px; border: 1px solid var(--control-border); border-radius: 8px; background: var(--maple-bg); }
+.mark-replacement > div:last-child { border-color: var(--maple-accent); }
+.mark-replacement span { font-size: 11px; color: var(--maple-text-muted); }
+.mark-replacement p { margin: 5px 0 0; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
