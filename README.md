@@ -23,7 +23,11 @@
 3. 点击「加载解压缩的扩展」，选择 **extension** 文件夹。
 4. 将 QuokMark 固定到浏览器工具栏。
 
-Firefox 桌面版使用单独的 Firefox 安装包，当前 `extension/` 清单仅用于 Chrome / Edge。Firefox 版尚未上架扩展市场。
+- [QuokMark - Microsoft Edge Addons](https://microsoftedge.microsoft.com/addons/detail/quokmark/pcpbmidkoajgeeenfcenjlkcgnmdnlek) 
+
+- [QuokMark FireFox 插件](https://addons.mozilla.org/zh-CN/firefox/addon/quokmark/)
+
+
 
 ## 使用
 
