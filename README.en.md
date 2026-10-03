@@ -23,7 +23,11 @@ This repository contains the directly loadable Chrome / Edge extension source. `
 3. Click **Load unpacked** and select the **extension** folder.
 4. Pin QuokMark to the browser toolbar.
 
-Firefox desktop uses a separate Firefox package; the current `extension/` manifest is for Chrome / Edge. The Firefox edition is not yet listed on Firefox Add-ons.
+- [QuokMark - Microsoft Edge Addons](https://microsoftedge.microsoft.com/addons/detail/quokmark/pcpbmidkoajgeeenfcenjlkcgnmdnlek) 
+
+- [QuokMark FireFox](https://addons.mozilla.org/zh-CN/firefox/addon/quokmark/)
+
+
 
 ## Usage
 
