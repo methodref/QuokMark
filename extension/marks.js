@@ -72,7 +72,7 @@ function renderMarkControls(){
   $('mark-slot-pane').hidden=!choosing;$('mark-folder-pane').hidden=choosing;$('mark-remove').hidden=!choosing;
   $('mark-slot-number').textContent=activeMark;
   $('mark-save').textContent=choosing?markAdding?t('添加快捷键'):t('选择条目'):t('确认绑定');
-  $('mark-save').disabled=choosing&&markAdding?!nextMarkKey():!findItem(markDestination)||!isMarkKey(markKeyInput.value.toLowerCase());
+  $('mark-save').disabled=choosing?(markAdding?!nextMarkKey():!isMarkKey(markKeyInput.value.toLowerCase())):!findItem(markDestination)||!isMarkKey(markKeyInput.value.toLowerCase());
   if(!choosing&&markSearchPending)$('mark-save').disabled=true;
   $('mark-remove').disabled=markAdding||!folderMarks[activeMark];
   $('marks-close').textContent=choosing?t('取消'):t('返回');
