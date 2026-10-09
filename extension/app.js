@@ -7,6 +7,22 @@ const domReady = document.readyState === 'loading' ? new Promise(resolve => docu
 let roots = [], rows = [], collapsed = {}, selected = '', mode = 'nav', query = '', hints = new Map(), prefix = '', pendingG = false, directoryScroll = 0;
 let hintViewport = null;
 let searchCollapsed = {}, searchFolderIds = [], pendingY = false;
+const bookmarkSearch = new BookmarkSearch();
+let bookmarkSearchReady = Promise.resolve(), searchPending = false, selectSearchFirst = false;
+function prepareBookmarkSearch() {
+  if (bookmarkSearch.tree === roots) return bookmarkSearchReady;
+  bookmarkSearchReady = bookmarkSearch.replaceTree(roots).then(current => {
+    if (!current || app.inert) return;
+    if ($('message').textContent === t('正在准备搜索…')) message();
+    if (query) render();
+    else if (typeof marksDialog !== 'undefined' && marksDialog.open && markSearch.value.trim()) renderMarkSlots();
+    if (selectSearchFirst && query && !searchPending) {
+      selected = rows.find(x => x.node.url)?.node.id || rows[0]?.node.id || '';
+      selectSearchFirst = false; syncSelection(false);
+    }
+  });
+  return bookmarkSearchReady;
+}
 const isCollapsed = id => Boolean((query ? searchCollapsed : collapsed)[id]);
 let verticalLeft = null;
 let selectedElement = null;
@@ -90,8 +106,9 @@ function makeItem(node, label = node.title, items = rows) {
   return row;
 }
 function appendGroups(nodes, parent, path = [], items = rows) {
-  nodes.filter(node => node.url).forEach(node => parent.append(makeItem(node, node.title, items)));
-  for (const node of nodes.filter(node => folder(node))) {
+  const ordered = query ? nodes : [...nodes.filter(node => node.url), ...nodes.filter(node => folder(node))];
+  for (const node of ordered) {
+    if (node.url) { parent.append(makeItem(node, node.title, items)); continue; }
     const group = document.createElement('section'); group.className = 'folder';
     const currentPath = [...path, node.title];
     group.bookmarkPath = currentPath;
@@ -106,34 +123,32 @@ function appendGroups(nodes, parent, path = [], items = rows) {
 }
 let searchRenderKey = '';
 function render() {
+  if (!app.inert) prepareBookmarkSearch();
   refreshFolderMarks();
   finishFolderMotion();
   verticalLeft = null;
   const scroll = list.scrollTop;
   let nodes = roots, nextSearchKey = '';
+  searchPending = false;
+  list.inert = false;
   if (query) {
     const term = query.toLocaleLowerCase();
-    function matchingNodes(nodes) {
-      return nodes.flatMap(node => {
-        if (node.type === 'separator') return [];
-        if (node.title.toLocaleLowerCase().includes(term)) return [node];
-        if (!folder(node)) return [];
-        const children = matchingNodes(node.children || []);
-        return children.length ? [{ ...node, children }] : [];
-      });
-    }
-    nodes = matchingNodes(roots);
+    const result = bookmarkSearch.popup(query);
+    nodes = result.nodes; searchPending = result.state === 'loading';
+    list.setAttribute('aria-busy', String(searchPending));
+    if (searchPending) { list.inert = true; message(t('正在准备搜索…')); status(); return; }
+    if (result.state === 'fallback') message(t('搜索暂不可用，已改用名称搜索'));
     const folders = walk(nodes, 0, true).filter(x => folder(x.node));
     searchFolderIds = folders.map(x => x.node.id);
     // Different queries can produce the same tree; avoid moving every row again.
-    nextSearchKey = JSON.stringify([nodes, searchCollapsed, folders.filter(x => x.node.title.toLocaleLowerCase().includes(term)).map(x => x.node.id), language]);
+    nextSearchKey = JSON.stringify([nodes, searchCollapsed, folders.filter(x => x.node.title.toLocaleLowerCase().includes(term)).map(x => x.node.id), language, result.state]);
     if (nextSearchKey === searchRenderKey) { syncSelection(false); status(); return; }
-  }
+  } else list.removeAttribute('aria-busy');
   rows = [];
   const content = document.createDocumentFragment();
   const grid = document.createElement('div'); grid.className = 'childContainer'; content.append(grid);
   appendGroups(nodes, grid);
-  if (!rows.some(x => x.node.id === selected)) selected = rows[0]?.node.id || '';
+  if (!rows.some(x => x.node.id === selected)) selected = (query && rows.find(x => x.node.url)?.node.id) || rows[0]?.node.id || '';
   if (!rows.length) { const empty = document.createElement('div'); empty.className = 'empty'; empty.textContent = query ? t('没有匹配的书签') : t('还没有书签'); content.append(empty); }
   list.replaceChildren(content);
   searchRenderKey = nextSearchKey;
@@ -310,6 +325,7 @@ function foldCommand(action) {
 function enterSearch() { pendingY = false; if (mode === 'hints') cancelHints(); if (!query) directoryScroll = list.scrollTop; mode = 'edit'; pendingG = false; search.focus(); showBookmarkTip(null); status(); message(t('输入名称，Esc 返回结果导航')); }
 function cancelHints() { hintViewport = null; mode = query ? 'results' : 'nav'; hints.clear(); prefix = ''; list.querySelectorAll('.hint').forEach(x => x.remove()); list.querySelectorAll('.muted').forEach(x => x.classList.remove('muted')); status(); showBookmarkTip(list.querySelector('.bookmark.selected')); }
 function beginHints() {
+  if (searchPending) { message(t('正在准备搜索…')); return; }
   list.scrollTo({ top: list.scrollTop, behavior: 'instant' });
   pendingY = false;
   finishFolderMotion();
@@ -376,7 +392,9 @@ async function openBookmark(node) {
 }
 search.addEventListener('focus', () => { if (mode !== 'edit') enterSearch(); });
 search.addEventListener('input', () => {
+  selectSearchFirst = false;
   query = search.value; searchCollapsed = {}; render(); list.scrollTop = 0;
+  if (searchPending) { selectSearchFirst = true; return; }
   selected = rows.find(x => x.node.url)?.node.id || rows[0]?.node.id || ''; syncSelection(false);
 });
 $('hint-button').onclick = () => { if (mode === 'hints') cancelHints(); else beginHints(); };
@@ -393,8 +411,9 @@ document.addEventListener('keydown', event => {
   let key = event.key;
   if (key === 'Shift') return;
   if (key === 'Escape' && event.repeat) { event.preventDefault(); return; }
+  if (searchPending && mode === 'results' && !['Escape', '/'].includes(key)) { event.preventDefault(); return; }
   if (mode === 'edit') {
-    if (key === 'Enter') { event.preventDefault(); const node = rows.find(x => x.node.id === selected)?.node; if (node?.url) openBookmark(node); }
+    if (key === 'Enter') { event.preventDefault(); const node = rows.find(x => x.node.id === selected)?.node; if (!searchPending && node?.url) openBookmark(node); }
     if (key === 'Escape') { event.preventDefault(); search.blur(); mode = query ? 'results' : 'nav'; list.focus({ preventScroll: true }); syncSelection(false); status(); message(t('按 f 选择书签')); }
     return;
   }
@@ -416,7 +435,7 @@ document.addEventListener('keydown', event => {
   if (!['j', 'k', 'h', 'l', 'd', 'u', 'g', 'G', '/', 'f', 'F', 'Enter', 'Escape'].includes(key)) { pendingG = false; return; }
   event.preventDefault(); message();
   const node = rows.find(x => x.node.id === selected)?.node;
-  if (key === 'Enter' && node?.url) openBookmark(node);
+  if (key === 'Enter' && !searchPending && node?.url) openBookmark(node);
   // Repeating smooth requests can restart before advancing; held keys scroll immediately.
   if (key === 'j') moveVertical(1, event.repeat);
   if (key === 'k') moveVertical(-1, event.repeat);
@@ -479,8 +498,23 @@ async function init() {
   startupStatus.hidden = true;
   app.inert = false; app.removeAttribute('aria-busy'); list.focus({ preventScroll: true });
   scheduleBackgroundIcons();
+  prepareBookmarkSearch();
   directoryScroll = list.scrollTop; save();
-  if (native) { let timer; const refresh = () => { clearTimeout(timer); timer = setTimeout(async () => { if (mode === 'hints') cancelHints(); roots = (await chrome.bookmarks.getTree())[0].children; render(); }, 80); }; for (const event of ['onCreated', 'onRemoved', 'onChanged', 'onMoved', 'onChildrenReordered']) chrome.bookmarks[event]?.addListener(refresh); }
+  if (native) {
+    let timer, version = 0, importing = false;
+    const refresh = () => {
+      const request = ++version; clearTimeout(timer);
+      if (importing) return;
+      timer = setTimeout(async () => {
+        const tree = await chrome.bookmarks.getTree();
+        if (request !== version) return;
+        if (mode === 'hints') cancelHints(); roots = tree[0].children; render();
+      }, 80);
+    };
+    for (const event of ['onCreated', 'onRemoved', 'onChanged', 'onMoved', 'onChildrenReordered']) chrome.bookmarks[event]?.addListener(refresh);
+    chrome.bookmarks.onImportBegan?.addListener(() => { importing = true; version++; clearTimeout(timer); });
+    chrome.bookmarks.onImportEnded?.addListener(() => { importing = false; refresh(); });
+  }
 }
 let iconObserver = null, iconWarmupVersion = 0, lastIconScroll = 0;
 function scheduleBackgroundIcons() {

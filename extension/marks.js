@@ -1,5 +1,6 @@
 /* Shortcuts store native bookmark or folder IDs alongside the popup preferences. */
 let folderMarks={}, activeMark='1', pendingMark=null, markDestination='', markExpanded=new Set(), pendingMarkG=false, markStage='slots', markAdding=false;
+let markSearchPending=false;
 const marksDialog=$('folder-marks'), markConfirm=$('mark-confirm'), markSearch=$('mark-search'), markKeyInput=$('mark-key');
 const reservedMarkKeys=new Set('dfghjklmuy');
 function isMarkKey(key){return /^[1-9a-z]$/.test(key)&&!reservedMarkKeys.has(key);}
@@ -31,7 +32,7 @@ function storeMark(slot,item){
   message(t('已绑定 {slot} → {name}',{slot,name:item.node.title||t('未命名')}));
 }
 function bindFolderMark(slot,item){
-  if(!isMarkKey(slot)||!item||item.node.type==='separator'){message(t('请选择有效快捷键和条目'));return;}
+  if(markSearchPending||!isMarkKey(slot)||!item||item.node.type==='separator'){message(t('请选择有效快捷键和条目'));return;}
   const previous=folderMarks[slot];
   if(previous&&previous.id!==item.node.id){
     pendingMark={slot,id:item.node.id};const old=findItem(previous.id);
@@ -72,6 +73,7 @@ function renderMarkControls(){
   $('mark-slot-number').textContent=activeMark;
   $('mark-save').textContent=choosing?markAdding?t('添加快捷键'):t('选择条目'):t('确认绑定');
   $('mark-save').disabled=choosing&&markAdding?!nextMarkKey():!findItem(markDestination)||!isMarkKey(markKeyInput.value.toLowerCase());
+  if(!choosing&&markSearchPending)$('mark-save').disabled=true;
   $('mark-remove').disabled=markAdding||!folderMarks[activeMark];
   $('marks-close').textContent=choosing?t('取消'):t('返回');
   const mark=folderMarks[activeMark],item=mark&&findItem(mark.id);
@@ -98,6 +100,7 @@ markKeyInput.addEventListener('input',()=>{
 function renderMarkFolders(focus=false){
   const tree=$('mark-folders');tree.replaceChildren();
   const term=markSearch.value.trim().toLocaleLowerCase(),entries=[];
+  markSearchPending=false;
   if(!term&&!findItem(markDestination))markDestination=roots.find(folder)?.id||'';
   let parent=findItem(markDestination)?.parent;while(parent){markExpanded.add(parent.id);parent=findItem(parent.id)?.parent;}
   function append(nodes,depth=0,path=[]){
@@ -108,9 +111,23 @@ function renderMarkFolders(focus=false){
       if(term||expanded)append(children,depth+1,fullPath);
     }
   }
-  append(roots);
-  if(!entries.some(entry=>entry.node.id===markDestination))markDestination=entries[0]?.node.id||'';
+  let groups=[];
+  if(term){
+    prepareBookmarkSearch();
+    const result=bookmarkSearch.bindings(markSearch.value);
+    markSearchPending=result.state==='loading';groups=result.groups;
+    for(const group of groups)for(const entry of group.entries)entries.push({...entry,children:entry.node.children||[],expanded:false,depth:0,fullPath:entry.fullPath.map(name=>name||t('未命名'))});
+    if(result.state==='fallback')message(t('搜索暂不可用，已改用名称搜索'));
+  }else append(roots);
+  tree.setAttribute('aria-busy',String(markSearchPending));
+  if(!markSearchPending&&!entries.some(entry=>entry.node.id===markDestination))markDestination=entries[0]?.node.id||'';
+  let groupIndex=0,groupRemaining=0;
   for(const {node,children,expanded,depth,fullPath} of entries){
+      if(term&&!groupRemaining){
+        const group=groups[groupIndex++],heading=document.createElement('div');heading.className='mark-group-title';heading.setAttribute('role','presentation');
+        heading.textContent=group.fullPath.map(name=>name||t('未命名')).join(' / ')||t('书签');tree.append(heading);groupRemaining=group.entries.length;
+      }
+      if(term)groupRemaining--;
       const active=node.id===markDestination;
       const row=document.createElement('button');row.type='button';row.dataset.id=node.id;row.dataset.parent=node.parentId||'';row.tabIndex=active?0:-1;
       row.setAttribute('role','treeitem');row.setAttribute('aria-level',String(depth+1));row.setAttribute('aria-selected',String(active));
@@ -126,8 +143,9 @@ function renderMarkFolders(focus=false){
       };tree.append(row);
   }
   $('mark-folder-count').textContent=t('{count} 个条目',{count:entries.length});
-  if(!entries.length){const empty=document.createElement('p');empty.className='mark-empty';empty.textContent=t('没有匹配的条目');tree.append(empty);}
-  $('mark-save').disabled=!findItem(markDestination)||!isMarkKey(markKeyInput.value.toLowerCase());
+  if(!entries.length){const empty=document.createElement('p');empty.className='mark-empty';empty.textContent=markSearchPending?t('正在准备搜索…'):t('没有匹配的条目');tree.append(empty);}
+  $('mark-save').disabled=markSearchPending||!findItem(markDestination)||!isMarkKey(markKeyInput.value.toLowerCase());
+  $('mark-confirm-save').disabled=markSearchPending;
   if(focus){const row=tree.querySelector('[tabindex="0"]');row?.focus({preventScroll:true});row?.scrollIntoView({block:'nearest'});}
 }
 markSearch.addEventListener('input',()=>{pendingMarkG=false;renderMarkFolders();});
@@ -143,6 +161,7 @@ marksDialog.addEventListener('cancel',event=>{event.preventDefault();if(markStag
 markConfirm.addEventListener('cancel',event=>{event.preventDefault();markConfirm.close();pendingMark=null;});
 $('mark-confirm-cancel').onclick=()=>{markConfirm.close();pendingMark=null;};
 $('mark-confirm-save').onclick=()=>{
+  if(markSearchPending)return;
   const item=pendingMark&&findItem(pendingMark.id);
   if(item&&item.node.type!=='separator'&&isMarkKey(pendingMark.slot))storeMark(pendingMark.slot,item);else message(t('请选择有效快捷键和条目'));
   pendingMark=null;markConfirm.close();

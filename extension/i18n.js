@@ -2,6 +2,10 @@
 let language='zh';
 const translations={
   "en": {
+    "搜索书签或者文件夹...": "Search bookmarks or folders…",
+    "搜索书签标题、域名或路径；目录按名称匹配": "Search bookmark titles, domains or paths; folders match by name",
+    "正在准备搜索…": "Preparing search…",
+    "搜索暂不可用，已改用名称搜索": "Search unavailable; using name search",
     "快捷绑定": "Shortcut bindings",
     "快捷键": "Shortcut",
     "选择或添加快捷键": "Choose or add a shortcut",
@@ -250,6 +254,10 @@ const translations={
     "语言保存失败，请重试": "Unable to save language; try again"
   },
   "zh-TW": {
+    "搜索书签或者文件夹...": "搜尋書籤或資料夾…",
+    "搜索书签标题、域名或路径；目录按名称匹配": "搜尋書籤標題、網域或路徑；目錄按名稱比對",
+    "正在准备搜索…": "正在準備搜尋…",
+    "搜索暂不可用，已改用名称搜索": "搜尋暫時無法使用，已改用名稱搜尋",
     "正在读取书签…": "正在讀取書籤…",
     "非搜索时关闭主弹窗": "非搜尋時關閉主視窗",
     "外观主题": "外觀主題",
@@ -358,6 +366,10 @@ const translations={
     "语言保存失败，请重试": "無法儲存語言，請重試"
   },
   "ja": {
+    "搜索书签或者文件夹...": "ブックマーク・フォルダを検索…",
+    "搜索书签标题、域名或路径；目录按名称匹配": "タイトル・ドメイン・パスを検索；フォルダは名前で検索",
+    "正在准备搜索…": "検索を準備中…",
+    "搜索暂不可用，已改用名称搜索": "検索を利用できません。名前で検索します",
     "正在读取书签…": "ブックマークを読み込み中…",
     "非搜索时关闭主弹窗": "検索していないときにポップアップを閉じる",
     "外观主题": "外観",
@@ -466,6 +478,10 @@ const translations={
     "语言保存失败，请重试": "言語を保存できません。再試行してください"
   },
   "ko": {
+    "搜索书签或者文件夹...": "북마크 또는 폴더 검색…",
+    "搜索书签标题、域名或路径；目录按名称匹配": "북마크 제목, 도메인, 경로 검색; 폴더는 이름으로 검색",
+    "正在准备搜索…": "검색 준비 중…",
+    "搜索暂不可用，已改用名称搜索": "검색을 사용할 수 없어 이름으로 검색합니다",
     "正在读取书签…": "북마크를 불러오는 중…",
     "非搜索时关闭主弹窗": "검색 중이 아닐 때 팝업 닫기",
     "外观主题": "화면 테마",
@@ -574,6 +590,10 @@ const translations={
     "语言保存失败，请重试": "언어 저장 실패, 다시 시도하세요"
   },
   "fr": {
+    "搜索书签或者文件夹...": "Rechercher favoris ou dossiers…",
+    "搜索书签标题、域名或路径；目录按名称匹配": "Rechercher titre, domaine ou chemin ; dossiers par nom",
+    "正在准备搜索…": "Préparation de la recherche…",
+    "搜索暂不可用，已改用名称搜索": "Recherche indisponible ; recherche par nom",
     "正在读取书签…": "Chargement des favoris…",
     "非搜索时关闭主弹窗": "Fermer la fenêtre hors recherche",
     "外观主题": "Apparence",
@@ -682,6 +702,10 @@ const translations={
     "语言保存失败，请重试": "Impossible d’enregistrer la langue ; réessayez"
   },
   "de": {
+    "搜索书签或者文件夹...": "Lesezeichen oder Ordner suchen…",
+    "搜索书签标题、域名或路径；目录按名称匹配": "Titel, Domain oder Pfad suchen; Ordner nach Namen",
+    "正在准备搜索…": "Suche wird vorbereitet…",
+    "搜索暂不可用，已改用名称搜索": "Suche nicht verfügbar; Suche nach Namen",
     "正在读取书签…": "Lesezeichen werden geladen…",
     "非搜索时关闭主弹窗": "Popup außerhalb der Suche schließen",
     "外观主题": "Darstellung",
@@ -790,6 +814,10 @@ const translations={
     "语言保存失败，请重试": "Sprache nicht gespeichert; erneut versuchen"
   },
   "es": {
+    "搜索书签或者文件夹...": "Buscar marcadores o carpetas…",
+    "搜索书签标题、域名或路径；目录按名称匹配": "Buscar título, dominio o ruta; carpetas por nombre",
+    "正在准备搜索…": "Preparando búsqueda…",
+    "搜索暂不可用，已改用名称搜索": "Búsqueda no disponible; buscando por nombre",
     "正在读取书签…": "Cargando marcadores…",
     "非搜索时关闭主弹窗": "Cerrar la ventana fuera de la búsqueda",
     "外观主题": "Apariencia",
