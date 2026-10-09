@@ -8,7 +8,7 @@
 ## 功能
 
 - **快速访问**：`hjkl` 或方向键移动，`f` 字母选择，`Enter` 打开书签。
-- **名称搜索**：搜索书签和文件夹，结果按目录分组展示。
+- **书签搜索**：按标题、域名和网址路径联合搜索，精确命中优先，结果不足时补充英文拼写容错；保留目录分组，按每组最佳命中排序。
 - **书签管理**：重命名、修改链接、移动、排序与删除，直接使用浏览器原生书签。
 - **导入与导出**：支持 JSON、Markdown 嵌套列表及浏览器书签 HTML，跨目录多选导出。
 - **键盘操作**：目录折叠、半页滚动、复制网址，无需频繁切换鼠标。
@@ -18,16 +18,19 @@
 
 ## 安装
 
+QuokMark 已上架，可直接从扩展市场安装：
+
+- **Microsoft Edge**：[QuokMark - Microsoft Edge Addons](https://microsoftedge.microsoft.com/addons/detail/quokmark/pcpbmidkoajgeeenfcenjlkcgnmdnlek)
+- **Firefox**：[QuokMark - Firefox Add-ons](https://addons.mozilla.org/zh-CN/firefox/addon/quokmark/)
+
+Chrome / Edge 本地安装（开发者模式）：
+
 1. 下载本仓库并解压。
 2. 打开 `edge://extensions` 或 `chrome://extensions`，开启「开发者模式」。
 3. 点击「加载解压缩的扩展」，选择 **extension** 文件夹。
 4. 将 QuokMark 固定到浏览器工具栏。
 
-- [QuokMark - Microsoft Edge Addons](https://microsoftedge.microsoft.com/addons/detail/quokmark/pcpbmidkoajgeeenfcenjlkcgnmdnlek) 
-
-- [QuokMark FireFox 插件](https://addons.mozilla.org/zh-CN/firefox/addon/quokmark/)
-
-
+Firefox 本地测试使用单独的 Firefox 安装包，当前 `extension/` 清单仅用于 Chrome / Edge。
 
 ## 使用
 
@@ -36,7 +39,7 @@
 | 按键 | 操作 |
 | --- | --- |
 | `hjkl` / 方向键 | 移动焦点；`h/l` 折叠或展开目录 |
-| `/` | 搜索书签或文件夹名称 |
+| `/` | 搜索书签标题、域名或路径；目录按名称匹配 |
 | `f` → 提示字母 | 打开对应书签 |
 | `Enter` | 打开选中的书签 |
 | `d/u` · `gg/G` | 下 / 上翻半页；跳到首项 / 末项 |
@@ -51,6 +54,10 @@
 重新打开弹窗会恢复上次选择，并将其定位在顶部约 1/3 处，尽量保留完整的顶部条目。
 
 搜索时按一次 `Esc` 保留结果，再按一次清空搜索。输入完整字母标签会立即在新标签页打开书签。管理操作直接修改原生书签，删除前请确认。
+
+顶部搜索和快捷绑定页共用本地 MiniSearch BM25+，标题、域名、路径权重为 5、3、1。多个关键词必须全部命中，可以分布在不同字段；最后一个英文词支持前缀匹配。精确与前缀结果不足 5 个时，最多补充 10 个近似结果，每个书签最多纠正一个长度至少 4 的英文查询词，允许一次插入、删除或替换。中文按连续文字匹配，完整 URL 优先精确匹配且不进行拼写纠正。
+
+目录继续按名称包含匹配：顶部命中目录保留完整子树，快捷绑定页只列出该可绑定条目。分组按最佳命中排序，组内按相关性排序。书签变更会刷新内存索引；搜索内容不记录、不上传。
 
 ## 致谢
 

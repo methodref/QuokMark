@@ -3,7 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QuokMark · 书签</title><link rel="stylesheet" href="maple-theme.css"><link rel="stylesheet" href="style.css"></head>
 <body class="extension">
 <main class="app" inert aria-busy="true">
-  <div class="search"><input id="search" aria-label="搜索书签或文件夹" placeholder="搜索书签或文件夹…" autocomplete="off" spellcheck="false"><kbd>/</kbd></div>
+  <div class="search"><input id="search" aria-label="搜索书签或文件夹" placeholder="搜索书签或者文件夹..." autocomplete="off" spellcheck="false"><kbd>/</kbd></div>
   <span id="count" hidden></span>
   <div id="list" role="listbox" aria-label="书签分组" tabindex="0"></div>
   <div id="bookmark-tip" role="tooltip" hidden></div>
@@ -60,7 +60,7 @@
     </div>
     <div id="mark-folder-pane" hidden>
       <div class="order-source"><span class="order-caption">绑定快捷键</span><div><kbd id="mark-slot-number"></kbd><strong id="mark-folder-label">选择目录或书签</strong></div></div>
-      <input id="mark-search" type="search" placeholder="搜索目录或书签…" aria-label="搜索绑定条目" autocomplete="off">
+      <input id="mark-search" type="search" placeholder="搜索书签或者文件夹..." aria-label="搜索绑定条目" autocomplete="off">
       <div class="order-heading"><span>绑定条目</span><span id="mark-folder-count"></span></div>
       <div id="mark-folders" role="tree" aria-labelledby="mark-folder-label"></div>
     </div>
@@ -87,7 +87,7 @@
       </dl>
       <h3>搜索与选择</h3>
       <dl>
-        <dt>/</dt><dd>搜索书签或文件夹名称</dd>
+        <dt>/</dt><dd>搜索书签标题、域名或路径；目录按名称匹配</dd>
         <dt>Esc</dt><dd>退出输入保留结果；再按清空</dd>
         <dt>f</dt><dd>显示可见书签的字母标签</dd>
         <dt>标签字母</dt><dd>完整匹配后打开；无匹配则退出</dd>
@@ -126,6 +126,8 @@
 <script src="bootstrap.js"></script>
 <script src="i18n.js"></script>
 <script src="theme.js"></script>
+<script src="minisearch.js"></script>
+<script src="search.js"></script>
 <script src="app.js"></script>
 <script src="bookmark-files.js"></script>
 <script src="transfer.js"></script>
