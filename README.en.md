@@ -8,7 +8,7 @@ This repository contains the directly loadable Chrome / Edge extension source. `
 ## Features
 
 - **Quick access:** navigate with `hjkl` or arrows, select with `f` hints, and open with `Enter`.
-- **Name search:** find bookmarks and folders, with results grouped by folder.
+- **Bookmark search:** combine title, domain and URL-path keywords, prioritize exact matches and supplement sparse results with English typo tolerance; groups rank by their best match.
 - **Bookmark management:** rename, edit URLs, move, reorder and delete native browser bookmarks.
 - **Import and export:** JSON, nested Markdown lists and browser bookmark HTML; export multiple folders across parents.
 - **Keyboard controls:** fold folders, scroll half a page, and copy URLs.
@@ -18,12 +18,19 @@ This repository contains the directly loadable Chrome / Edge extension source. `
 
 ## Install
 
+QuokMark is available from the extension stores:
+
+- **Microsoft Edge:** [QuokMark - Microsoft Edge Addons](https://microsoftedge.microsoft.com/addons/detail/quokmark/pcpbmidkoajgeeenfcenjlkcgnmdnlek)
+- **Firefox:** [QuokMark - Firefox Add-ons](https://addons.mozilla.org/zh-CN/firefox/addon/quokmark/)
+
+Chrome / Edge local installation (Developer mode):
+
 1. Download and extract this repository.
 2. Open `edge://extensions` or `chrome://extensions` and enable **Developer mode**.
 3. Click **Load unpacked** and select the **extension** folder.
 4. Pin QuokMark to the browser toolbar.
 
-Firefox desktop uses a separate Firefox package; the current `extension/` manifest is for Chrome / Edge. The Firefox edition is not yet listed on Firefox Add-ons.
+Local Firefox testing uses a separate Firefox package; the current `extension/` manifest is for Chrome / Edge.
 
 ## Usage
 
@@ -32,7 +39,7 @@ Press **Command+E (macOS)** or **Ctrl+E (Windows)**, or click the toolbar icon. 
 | Keys | Action |
 | --- | --- |
 | `hjkl` / arrows | Move focus; `h/l` collapse or expand a folder |
-| `/` | Search bookmark or folder names |
+| `/` | Search bookmark titles, domains or paths; folders match by name |
 | `f` → hint letters | Open the matching bookmark |
 | `Enter` | Open the selected bookmark |
 | `d/u` · `gg/G` | Scroll down / up half a page; jump to first / last item |
@@ -47,6 +54,10 @@ Press **Command+E (macOS)** or **Ctrl+E (Windows)**, or click the toolbar icon. 
 Reopening the popup restores your last selection near the upper third of the list, keeping the first visible item whole where possible.
 
 During search, Esc keeps the results; press it again to clear them. A complete hint label opens the bookmark immediately in a new tab. Edits affect native bookmarks directly—check before confirming deletion.
+
+The top search and shortcut binding page share local MiniSearch BM25+ with title/domain/path weights of 5/3/1. Every keyword must match, across fields if needed; the last English word supports prefixes. Fewer than five exact/prefix results triggers at most ten approximate results: one English query word of at least four letters may have one insertion, deletion or substitution per bookmark. Chinese text matches contiguous strings. Full URLs prioritize exact matches and are not typo-corrected.
+
+Folders retain name-substring matching: a matching folder in the top search includes its complete subtree, while binding search lists only the matched, bindable item. Groups rank by their best match and entries by relevance. Bookmark changes refresh the in-memory index; search content is neither recorded nor uploaded.
 
 ## Thanks
 
